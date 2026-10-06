@@ -1,0 +1,10 @@
+# Berisi password DB - JANGAN masuk Git
+start_kaliper.bat
+
+# Data pengukuran lokal (data produksi)
+hasil_pengukuran.csv
+
+# Cache Python
+__pycache__/
+*.pyc
+.venv/
