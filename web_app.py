@@ -3,10 +3,10 @@ Kaliper QC - tampilan WEB (Flask) di atas logika kaliper_app.py
 
 Alur data tetap sama dengan aplikasi tkinter:
   Kaliper -> MarCom (Keyboard code) -> browser (kolom input tersembunyi) -> Flask
-          -> CSV lokal + SQL Server (tbl_cNN) lewat KaliperStandalone / QCDatabase
+          -> CSV lokal + PostgreSQL (tbl_cNN) lewat KaliperStandalone / QCDatabase
 
 Jalankan : python web_app.py          (lalu buka http://localhost:5000)
-Env      : WEB_HOST (default 0.0.0.0), WEB_PORT (default 5000) + DB_* seperti kaliper_app.py
+Env      : WEB_HOST (default 0.0.0.0), WEB_PORT (default 5000); DB_ENABLED=1 untuk mengaktifkan PostgreSQL
 """
 import os
 import threading
@@ -43,7 +43,7 @@ class WebKaliper:
         self.flush_msg = ""
 
         self._db_ok = None if core.db is not None else False
-        self._db_msg = "" if core.db is not None else "Mode CSV saja (DB_PASSWORD belum diisi)"
+        self._db_msg = "" if core.db is not None else "Mode CSV saja (koneksi database nonaktif)"
         self._molds = {"ts": 0.0, "data": []}
 
         if core.db is not None:

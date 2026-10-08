@@ -1,8 +1,9 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
-from kaliper_app import KaliperStandalone, QCDatabase, analisa_kolom
+from kaliper_app import KaliperStandalone, QCDatabase, analisa_kolom, make_db
 
 
 class FakeDB:
@@ -66,13 +67,17 @@ class KaliperTest(unittest.TestCase):
         self.app.mold = ""
         self.assertFalse(self.app.process_input("1.0"))
 
-    def test_tabel_dan_connection_string(self):
+    def test_tabel_dan_konfigurasi_postgres(self):
         self.assertEqual(QCDatabase.table_for_line("c05"), "tbl_c05")
         with self.assertRaises(ValueError):
             QCDatabase.table_for_line("C23")
-        cs = QCDatabase(server="h", port=1, database="d", user="u-x", password="p@;}!")._conn_str("DRV")
-        self.assertIn("SERVER=h,1;", cs)
-        self.assertIn("PWD={p@;}}!};", cs)
+        db = QCDatabase(server="localhost", port=5432, database="qc", user="postgres", password="")
+        self.assertEqual((db.server, db.port, db.database, db.user),
+                         ("localhost", 5432, "qc", "postgres"))
+
+    def test_mode_csv_tidak_membuat_koneksi_database(self):
+        with patch("kaliper_app.DB_ENABLED", False):
+            self.assertIsNone(make_db())
 
 
 def _rows(table, spec):

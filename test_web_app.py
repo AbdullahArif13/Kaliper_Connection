@@ -4,6 +4,7 @@ import time
 import unittest
 
 from kaliper_app import KaliperStandalone
+import qc_queries
 from web_app import create_app
 
 
@@ -49,7 +50,15 @@ class WebTest(unittest.TestCase):
             self.assertEqual(r.status_code, 200, r.json)
 
     def test_halaman_utama_dan_aset(self):
-        self.assertEqual(self.c.get("/").status_code, 200)
+        response = self.c.get("/")
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn('id="lineSelectMain"', page)
+        self.assertIn('id="val-tipe-main"', page)
+        self.assertIn('id="val-mold-main"', page)
+        self.assertIn('id="pointGrid"', page)
+        self.assertIn('id="caliperInput" class="caliper-capture-input"', page)
+        self.assertNotIn("Input Kaliper (tembak kaliper", page)
         for f in ("chart.min.js", "hammer.min.js", "chartjs-plugin-zoom.min.js", "Logo GS.png"):
             self.assertEqual(self.c.get("/static/" + f).status_code, 200, f)
 
@@ -112,6 +121,16 @@ class WebTest(unittest.TestCase):
         self.assertEqual(st["db_server"], "csv only")
         self.assertEqual(st["pending"], 1)
         self.assertEqual(c.get("/api/history?mold=m").json["error"], True)
+
+    def test_query_history_memakai_sintaks_postgres(self):
+        sql, params = qc_queries._union(
+            "C02", "M-01", "GRID A", "2025-01-01", None, None, None)
+        self.assertIn('FROM tbl_c02', sql)
+        self.assertIn('"timestamp" AS ts', sql)
+        self.assertIn("BTRIM(no_mold)", sql)
+        self.assertEqual(sql.count("%s"), 3)
+        self.assertEqual(params, ["M-01", "GRID A", "2025-01-01"])
+        self.assertNotIn("dbo.", sql)
 
     def test_tipe_lookup_dan_siklus_baru(self):
         self.assertEqual(self.c.get("/api/tipe?mold=m-01").json["tipe"], "GRID A")

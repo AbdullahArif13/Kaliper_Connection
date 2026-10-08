@@ -1,4 +1,4 @@
-# Berisi password DB - JANGAN masuk Git
+# Konfigurasi lokal launcher; jangan commit kredensial
 start_kaliper.bat
 
 # Data pengukuran lokal (data produksi)

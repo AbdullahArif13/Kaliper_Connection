@@ -1,7 +1,6 @@
 """
 Query tambahan untuk tampilan web (Riwayat, Grafik, daftar Mold).
-Hanya memakai QCDatabase.connect() dari kaliper_app.py - struktur DB tidak diubah.
-Semua nilai filter memakai parameter (?), nama tabel hanya dari tbl_c01..tbl_c22.
+Menggunakan placeholder PostgreSQL (%s) dan nama tabel yang dibatasi ke tbl_c01..tbl_c22.
 """
 import re
 from datetime import datetime
@@ -53,10 +52,10 @@ def add_mold(db, mold, tipe):
     conn = db.connect()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT 1 FROM mold_mapping WHERE UPPER(LTRIM(RTRIM(mold_number))) = ?", mold)
+        cur.execute("SELECT 1 FROM mold_mapping WHERE UPPER(BTRIM(mold_number)) = %s", (mold,))
         if cur.fetchone():
             return True, "Mold sudah ada di database."
-        cur.execute("INSERT INTO mold_mapping (mold_number, tipe_grid) VALUES (?, ?)", mold, tipe)
+        cur.execute("INSERT INTO mold_mapping (mold_number, tipe_grid) VALUES (%s, %s)", (mold, tipe))
         return True, "Mold baru tersimpan ke database."
     finally:
         conn.close()
@@ -70,20 +69,20 @@ def _union(line, mold, tipe, date_from, date_to, time_from, time_to):
         table = f"tbl_c{label[1:]}"
         cond = ["1=1"]
         if mold:
-            cond.append("UPPER(LTRIM(RTRIM(no_mold))) = ?"); params.append(mold)
+            cond.append("UPPER(BTRIM(no_mold)) = %s"); params.append(mold)
         if tipe:
-            cond.append("UPPER(LTRIM(RTRIM(tipe))) = ?"); params.append(tipe)
+            cond.append("UPPER(BTRIM(tipe)) = %s"); params.append(tipe)
         if date_from:
-            cond.append("CAST([timestamp] AS date) >= ?"); params.append(date_from)
+            cond.append('CAST("timestamp" AS date) >= %s'); params.append(date_from)
         if date_to:
-            cond.append("CAST([timestamp] AS date) <= ?"); params.append(date_to)
+            cond.append('CAST("timestamp" AS date) <= %s'); params.append(date_to)
         if time_from:
-            cond.append("CAST([timestamp] AS time) >= ?"); params.append(time_from)
+            cond.append('CAST("timestamp" AS time) >= %s'); params.append(time_from)
         if time_to:
-            cond.append("CAST([timestamp] AS time) <= ?"); params.append(time_to)
+            cond.append('CAST("timestamp" AS time) <= %s'); params.append(time_to)
         parts.append(
-            f"SELECT '{label}' AS line, [timestamp] AS ts, tipe, no_mold, sisi_a, sisi_b, sisi_c, sisi_d, "
-            f"sisi_e, sisi_f, sisi_g, sisi_h, [avg] AS avg_value FROM dbo.{table} WHERE {' AND '.join(cond)}")
+            f'SELECT \'{label}\' AS line, "timestamp" AS ts, tipe, no_mold, sisi_a, sisi_b, sisi_c, sisi_d, '
+            f'sisi_e, sisi_f, sisi_g, sisi_h, "avg" AS avg_value FROM {table} WHERE {" AND ".join(cond)}')
     return " UNION ALL ".join(parts), params
 
 
@@ -113,8 +112,9 @@ def history(db, args):
         return {"rows": [], "tipe": "-"}
     union_sql, params = _union(f["line"], f["mold"], f["tipe"], f["date_from"], f["date_to"],
                                f["time_from"], f["time_to"])
-    sql = (f"SELECT TOP {f['limit']} q.line, q.ts, q.tipe, q.no_mold, q.sisi_a, q.sisi_b, q.sisi_c, q.sisi_d, "
-           f"q.sisi_e, q.sisi_f, q.sisi_g, q.sisi_h, q.avg_value FROM ({union_sql}) AS q ORDER BY q.ts DESC")
+    sql = (f"SELECT q.line, q.ts, q.tipe, q.no_mold, q.sisi_a, q.sisi_b, q.sisi_c, q.sisi_d, "
+           f"q.sisi_e, q.sisi_f, q.sisi_g, q.sisi_h, q.avg_value FROM ({union_sql}) AS q "
+           f"ORDER BY q.ts DESC LIMIT {f['limit']}")
     conn = db.connect()
     try:
         cur = conn.cursor()

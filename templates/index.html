@@ -118,6 +118,7 @@
         .menu-btn { border: 1px solid rgba(13,95,233,0.16); background: #f5f9ff; color: var(--gs-blue-dark); padding: 12px 18px; border-radius: 999px; font-size: 12px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; white-space: nowrap; transition: 0.18s ease; }
         .menu-btn:hover { transform: translateY(-1px); background: #eaf2ff; }
         .menu-btn.active { background: linear-gradient(180deg, #1d82ff 0%, var(--gs-blue) 100%); color: #fff; border-color: rgba(13,95,233,0.0); box-shadow: 0 10px 22px rgba(13,95,233,0.24); }
+        .caliper-capture-input { position: fixed; left: -10000px; top: 0; width: 1px; height: 1px; opacity: 0; }
         .modal-backdrop { position: fixed; inset: 0; background: rgba(16, 33, 61, 0.42); display: none; align-items: center; justify-content: center; padding: 18px; z-index: 9999; }
         .modal { width: min(430px, 94vw); background: #fff; border-radius: 22px; border: 1px solid rgba(16, 33, 61, 0.08); box-shadow: 0 30px 80px rgba(16, 33, 61, 0.22); padding: 20px; }
         .modal h3 { margin: 0 0 10px 0; font-size: 1.08rem; color: #0d1d36; }
@@ -173,7 +174,7 @@
 </header>
 
 <main class="viewport">
-    <!-- ======================= MAIN DASHBOARD ======================= -->
+    <!-- ======================= DASHBOARD ======================= -->
     <section class="screen active" id="screen-dashboard">
         <div class="screen-inner">
             <div class="hero-layout">
@@ -218,14 +219,7 @@
                         </div>
                     </div>
 
-                    <div class="caliper-box">
-                        <div class="field-label">Input Kaliper (tembak kaliper, kursor harus di kolom ini)</div>
-                        <div class="caliper-row">
-                            <input type="text" id="caliperInput" class="caliper-input" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Menunggu tembakan kaliper..." />
-                            <span class="pill focus-pill" id="focusPill">Kaliper nonaktif</span>
-                        </div>
-                    </div>
-
+                    <input type="text" id="caliperInput" class="caliper-capture-input" aria-hidden="true" inputmode="decimal" autocomplete="off" spellcheck="false" tabindex="-1" />
                     <div class="point-grid" id="pointGrid"></div>
 
                     <div class="avg-row">
@@ -246,11 +240,11 @@
                     <div class="dashboard-footer-row">
                         <div class="footer-left">
                             <div class="footer-left-content">
-                                <div class="hint">Setelah Titik 8 terisi, data otomatis masuk DB lalu pindah ke line berikutnya. Enter di kolom kosong = konfirmasi Mold &amp; Tipe.</div>
+                                <div class="hint">Setelah Titik 8 terisi, data otomatis diproses lalu pindah ke line berikutnya. Data kaliper ditangkap tanpa menampilkan kolom input.</div>
                                 <div class="action-row">
                                     <button type="button" class="primary-btn btn-secondary small-btn" id="btnUndo">Undo</button>
                                     <button type="button" class="primary-btn btn-secondary small-btn" id="btnClearLine">Kosongkan Line</button>
-                                    <button type="button" class="primary-btn btn-secondary small-btn" id="btnFlush">Kirim Ulang ke DB</button>
+                                    <button type="button" class="primary-btn btn-secondary small-btn" id="btnFlush">Kirim Ulang</button>
                                     <button type="button" class="primary-btn btn-secondary small-btn" id="btnResetCycle">Siklus Baru</button>
                                 </div>
                             </div>
@@ -410,12 +404,12 @@
     const HISTORY_PAGE_SIZE = 20;
     const $ = (id) => document.getElementById(id);
 
-    let S = null;                    // state terakhir dari server
+    let S = null;
     let lastStateTs = 0;
     let masterMolds = [];            // [{mold, tipe}] dari tabel mold_mapping
-    let ctxConfirmed = false;        // Mold & Tipe sudah dikonfirmasi (Enter) untuk line aktif
-    let dirtyCtx = false;            // operator sedang mengubah Mold/Tipe dan belum menekan Enter
-    let lastSeq = null;              // penanda line selesai terakhir (untuk notifikasi)
+    let ctxConfirmed = false;
+    let dirtyCtx = false;
+    let lastSeq = null;
     let activeScreenId = "screen-dashboard";
     let inputChain = Promise.resolve();
 
@@ -523,7 +517,7 @@
     // ===================== DASHBOARD =====================
     const ready = () => ctxConfirmed && !dirtyCtx;
 
-    function buildStaticDashboard() {
+    function buildStaticFilters() {
         const sel = $("lineSelectMain"); sel.innerHTML = "";
         LINE_CODES.forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; sel.appendChild(o); });
         const ss = $("lineSelectSheet"); ss.innerHTML = "<option value=''>Semua Line</option>";
@@ -531,7 +525,6 @@
 
         $("pointGrid").innerHTML = Array.from({ length: SISI }, (_, i) =>
             `<div class="point-card" id="pcard-${i + 1}"><div class="point-head">Titik ${i + 1}</div><div class="point-value old-data" id="card-titik-${i + 1}" style="cursor:default">-</div></div>`).join("");
-
         $("lineGrid").innerHTML = LINE_CODES.map(c =>
             `<div class="line-chip" data-line="${c}" id="chip-${c}">${c}<small id="chip-small-${c}"></small></div>`).join("");
         document.querySelectorAll(".line-chip").forEach(ch => ch.addEventListener("click", () => gotoLine(ch.dataset.line)));
@@ -539,14 +532,13 @@
 
     function applyState(s) {
         if (!s || s.error) return;
-        if (s.ts && s.ts < lastStateTs) return;          // abaikan respon lama yang datang terlambat
+        if (s.ts && s.ts < lastStateTs) return;
         lastStateTs = s.ts || lastStateTs;
         S = s;
         setConnectionStatus(s);
 
         const sel = $("lineSelectMain");
         if (document.activeElement !== sel) sel.value = s.active_line;
-
         for (let i = 1; i <= SISI; i++) {
             const v = s["titik" + i], card = $("card-titik-" + i);
             card.textContent = formatNumber(v);
@@ -555,15 +547,14 @@
             $("pcard-" + i).classList.toggle("active-card", i === s.count + 1 && s.count < SISI);
         }
         $("avg-main").textContent = s.count > 0 ? formatNumber(s.avg) : "-";
-
         LINE_CODES.forEach(c => {
             const st = s.lines[c], chip = $("chip-" + c);
             chip.className = "line-chip " + (st.state === "idle" ? "" : st.state);
             chip.title = st.msg || "";
             $("chip-small-" + c).textContent =
-                c === s.active_line ? (s.count + "/" + SISI) : (st.avg !== null && st.avg !== undefined ? formatNumber(st.avg) : "");
+                c === s.active_line ? (s.count + "/" + SISI) :
+                (st.avg !== null && st.avg !== undefined ? formatNumber(st.avg) : "");
         });
-
         syncContext(s);
         notifyCompletion(s);
         updatePill();
@@ -575,7 +566,7 @@
         if (s.mold && s.tipe) {
             if (!editing) { mi.value = s.mold; ti.value = s.tipe; }
             if (!dirtyCtx) ctxConfirmed = true;
-        } else if (ctxConfirmed) {                    // server mengosongkan konteks (line selesai / pindah line)
+        } else if (ctxConfirmed) {
             ctxConfirmed = false;
             if (!editing) prefillFromLast(s.last_mold);
         } else if (!editing && !mi.value && !ti.value && s.last_mold) {
@@ -608,21 +599,24 @@
         if (!S) { setPill("Menghubungi server...", false); return; }
         if (!ready()) {
             const filled = $("val-mold-main").value.trim() && $("val-tipe-main").value.trim();
-            setPill(filled ? "Tekan Enter untuk konfirmasi No. Mold & Tipe" : "Isi No. Mold dan Tipe Grid", false);
+            setPill(filled ? "Tekan Enter pada kolom Tipe untuk konfirmasi" : "Isi No. Mold dan Tipe Grid", false);
         } else {
-            setPill(`Titik ${Math.min(S.count + 1, SISI)}/${SISI} - tembak kaliper`, true);
+            setPill(`Titik ${Math.min(S.count + 1, SISI)}/${SISI} - siap menerima kaliper`, true);
         }
     }
 
-    // ---------- konfirmasi Mold & Tipe ----------
     async function confirmContext() {
         const mi = $("val-mold-main"), ti = $("val-tipe-main");
         const mold = mi.value.trim().toUpperCase(), tipe = ti.value.trim().toUpperCase();
         if (!mold) { showToast("Isi No. Mold terlebih dahulu.", "error"); beep(300, 200); mi.focus(); return false; }
         if (!tipe) { showToast("Isi Tipe Grid terlebih dahulu.", "error"); beep(300, 200); ti.focus(); return false; }
         const r = await post("/api/context", { mold, tipe });
-        if (r.state) { lastStateTs = 0; }
-        if (!r.ok) { showToast(r.message || "Gagal menyimpan konteks.", "error"); beep(300, 250); if (r.state) applyState(r.state); return false; }
+        if (r.state) lastStateTs = 0;
+        if (!r.ok) {
+            showToast(r.message || "Gagal menyimpan konteks.", "error"); beep(300, 250);
+            if (r.state) applyState(r.state);
+            return false;
+        }
         mi.value = mold; ti.value = tipe; dirtyCtx = false; ctxConfirmed = true;
         applyState(r.state); focusCaliper();
         return true;
@@ -647,28 +641,32 @@
         }
     }
 
-    // ---------- input kaliper ----------
     function focusCaliper() {
         if (activeScreenId !== "screen-dashboard") return;
-        const el = $("caliperInput"); if (document.activeElement !== el) el.focus({ preventScroll: true });
+        const el = $("caliperInput");
+        if (document.activeElement !== el) el.focus({ preventScroll: true });
     }
-    function flashCaliper() {
-        const el = $("caliperInput"); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 400);
-    }
+
     function onCaliperEnter() {
         const el = $("caliperInput"), raw = el.value.trim(); el.value = "";
-        if (!raw) { if (!ready()) confirmContext(); return; }
-        if (!ready()) { showToast("Konfirmasi No. Mold & Tipe dulu (tekan Enter pada kolom kosong).", "error"); beep(300, 250); flashCaliper(); return; }
-        if (!/^[-+]?\d+([.,]\d+)?$/.test(raw)) { showToast(`"${raw}" bukan angka valid. Tembak ulang kaliper.`, "error"); beep(300, 250); flashCaliper(); return; }
-        inputChain = inputChain.then(() => sendValue(raw)).catch(() => { });
+        if (!raw) return;
+        if (!ready()) {
+            showToast("Konfirmasi No. Mold & Tipe Grid dulu.", "error"); beep(300, 250);
+            return;
+        }
+        if (!/^[-+]?\d+([.,]\d+)?$/.test(raw)) {
+            showToast(`"${raw}" bukan angka valid. Tembak ulang kaliper.`, "error"); beep(300, 250);
+            return;
+        }
+        inputChain = inputChain.then(() => sendValue(raw)).catch(() => {});
     }
+
     async function sendValue(raw) {
         const r = await post("/api/input", { value: raw });
         if (r.state) applyState(r.state);
-        if (!r.ok) { showToast(r.message || "Input ditolak.", "error"); beep(300, 250); flashCaliper(); }
+        if (!r.ok) { showToast(r.message || "Input ditolak.", "error"); beep(300, 250); }
     }
 
-    // ---------- perintah ----------
     async function cmd(path, body, infoToast) {
         const r = await post(path, body);
         if (r.state) applyState(r.state);
@@ -677,11 +675,15 @@
         focusCaliper();
         return r;
     }
+
     async function gotoLine(line) {
         if (S && line === S.active_line) { focusCaliper(); return; }
         const r = await post("/api/goto_line", { line });
         if (r.state) applyState(r.state);
-        if (!r.ok) { showToast(r.message || "Gagal pindah line.", "error"); beep(300, 250); if (S) $("lineSelectMain").value = S.active_line; }
+        if (!r.ok) {
+            showToast(r.message || "Gagal pindah line.", "error"); beep(300, 250);
+            if (S) $("lineSelectMain").value = S.active_line;
+        }
         focusCaliper();
     }
 
@@ -850,7 +852,7 @@
         activeScreenId = id;
         document.querySelectorAll(".screen").forEach(el => el.classList.toggle("active", el.id === id));
         document.querySelectorAll(".menu-btn").forEach(b => b.classList.toggle("active", b.dataset.screen === id));
-        if (id === "screen-dashboard") { focusCaliper(); }
+        if (id === "screen-dashboard") focusCaliper();
         else if (id === "screen-worksheet") refreshHistory();
         else if (id === "screen-chart-summary") fetchChartData();
     }
@@ -864,7 +866,7 @@
         }));
     }
 
-    buildStaticDashboard();
+    buildStaticFilters();
     setupTyping("val-mold-main", "val-tipe-main", (id) => {
         dirtyCtx = true;
         if (id === "val-tipe-main") fillMoldList("moldListMain", "val-tipe-main");
@@ -885,26 +887,27 @@
         else if (e.key === "Escape") { ci.value = ""; }
         else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); cmd("/api/undo"); }
     });
-    const refreshFocusUI = () => {
-        const on = document.activeElement === ci;
-        ci.classList.toggle("blurred", !on);
-        applyPillState("focusPill", on ? "Kaliper AKTIF" : "Klik di sini agar kaliper aktif", on);
-    };
-    ci.addEventListener("focus", refreshFocusUI); ci.addEventListener("blur", () => setTimeout(refreshFocusUI, 0));
-    ci.addEventListener("click", refreshFocusUI);
-    $("focusPill").addEventListener("click", focusCaliper);
     document.addEventListener("click", (e) => {
         if (activeScreenId === "screen-dashboard" && !e.target.closest("input,select,button,textarea,.line-chip")) focusCaliper();
     });
-    setInterval(() => { if (activeScreenId === "screen-dashboard" && document.activeElement === document.body) focusCaliper(); refreshFocusUI(); }, 1000);
+    setInterval(() => {
+        if (activeScreenId === "screen-dashboard" && document.activeElement === document.body) focusCaliper();
+    }, 1000);
 
     $("lineSelectMain").addEventListener("change", (e) => gotoLine(e.target.value));
     $("btnUndo").addEventListener("click", () => cmd("/api/undo"));
-    $("btnClearLine").addEventListener("click", () => { if (S && S.count > 0 && confirm("Kosongkan semua nilai di line aktif? (nilai mentah tetap ada di CSV)")) cmd("/api/clear_line"); else focusCaliper(); });
+    $("btnClearLine").addEventListener("click", () => {
+        if (S && S.count > 0 && confirm("Kosongkan semua nilai di line aktif? (nilai mentah tetap ada di CSV)")) {
+            cmd("/api/clear_line");
+        } else {
+            focusCaliper();
+        }
+    });
     $("btnFlush").addEventListener("click", () => cmd("/api/flush", {}, true));
     $("btnResetCycle").addEventListener("click", () => {
         const extra = S && S.pending ? `\n\nPERINGATAN: ${S.pending} baris belum masuk DB (masih ditahan dan akan dicoba lagi).` : "";
-        if (confirm("Mulai siklus baru dari C01?" + extra)) cmd("/api/reset_cycle", {}, true); else focusCaliper();
+        if (confirm("Mulai siklus baru dari C01?" + extra)) cmd("/api/reset_cycle", {}, true);
+        else focusCaliper();
     });
     $("btnRegisterMold").addEventListener("click", registerMold);
 
@@ -922,11 +925,11 @@
     // ===================== MULAI =====================
     renderHistoryFooter([]);
     loadMolds().then(pollState);
-    setInterval(pollState, 500);
+    setInterval(pollState, 5000);
     setInterval(loadMolds, 20000);
     setInterval(() => { if (!document.hidden && activeScreenId === "screen-worksheet") checkHistoryForChanges(); }, 2000);
     setActiveScreen("screen-dashboard");
-    refreshFocusUI();
+    focusCaliper();
 </script>
 </body>
 </html>
