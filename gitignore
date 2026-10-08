@@ -5,6 +5,4 @@ start_kaliper.bat
 hasil_pengukuran.csv
 
 # Cache Python
-__pycache__/
-*.pyc
-.venv/
+

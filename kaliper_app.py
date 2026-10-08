@@ -455,6 +455,7 @@ class KaliperGUI:
         tk.Button(top, text="Mulai ulang tabel", command=self.reset_table).pack(side="right", padx=3)
         tk.Button(top, text="Kirim ulang ke DB", command=self._kick_flush).pack(side="right", padx=3)
         tk.Button(top, text="Undo (Ctrl+Z)", command=self.undo).pack(side="right", padx=3)
+        tk.Button(top, text="Buka di Excel", command=self.open_excel).pack(side="right", padx=3)
 
         self.lbl_info = tk.Label(
             self.root, anchor="w", padx=8, font=("Segoe UI", 10), fg="#333",
@@ -765,6 +766,14 @@ class KaliperGUI:
             if str(e.cget("state")) == "normal":
                 e.delete(0, "end")
         return "break"
+
+    def open_excel(self):
+        self.app._init_csv()
+        try:
+            os.startfile(os.path.abspath(self.app.filename))
+        except Exception as e:
+            from tkinter import messagebox
+            messagebox.showerror("Buka Excel", f"Gagal membuka file Excel/CSV:\n{e}", parent=self.root)
 
     def reset_table(self):
         from tkinter import messagebox
