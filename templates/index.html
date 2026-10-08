@@ -302,6 +302,7 @@
 
                     <div class="table-topbar">
                         <div class="table-mini-badge">Rows: <span id="historyRowCount">0</span></div>
+                        <button type="button" class="primary-btn btn-secondary small-btn" id="btnExportExcel" title="Unduh semua data sesuai filter (bukan hanya halaman ini)">⬇ Download Excel</button>
                         <div class="page-controls">
                             <button class="page-btn" id="historyPrevBtn" type="button">❮</button>
                             <span class="page-info" id="historyPageInfo">Page 0 / 0</span>
@@ -781,6 +782,25 @@
             if (sig !== null && sig !== historySignatureValue) { historySignatureValue = sig; await fetchHistoryData(); }
         } finally { isCheckingHistorySignature = false; }
     }
+    async function exportHistoryExcel() {
+        const p = getHistoryQueryParams(); delete p.limit;
+        if (!p.line && !p.mold && !p.tipe) { showToast("Pilih Line, Mold, atau Tipe dulu sebelum download.", "error"); return; }
+        const btn = $("btnExportExcel"); btn.disabled = true; const old = btn.textContent; btn.textContent = "Menyiapkan...";
+        try {
+            const r = await fetch("/api/export_history?" + new URLSearchParams(p), { cache: "no-store" });
+            if (!r.ok) {
+                let msg = "Gagal membuat file Excel.";
+                try { msg = (await r.json()).message || msg; } catch (e) { }
+                showToast(msg, "error"); return;
+            }
+            const m = /filename="?([^";]+)"?/.exec(r.headers.get("Content-Disposition") || "");
+            const url = URL.createObjectURL(await r.blob());
+            const a = document.createElement("a"); a.href = url; a.download = m ? m[1] : "QC_History.xlsx";
+            document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+            showToast("File Excel berhasil diunduh.", "success");
+        } catch (e) { showToast("Server aplikasi tidak terjangkau.", "error"); }
+        finally { btn.disabled = false; btn.textContent = old; }
+    }
     function refreshHistory() { historySignatureValue = ""; historyPage = 0; fetchHistoryData(); }
 
     // ===================== GRAFIK =====================
@@ -919,6 +939,7 @@
     $("clearTimeToBtn").addEventListener("click", () => { $("timeToSheet").value = ""; toggleTimeClear(); refreshHistory(); });
     $("historyPrevBtn").addEventListener("click", () => changeHistoryPage(-1));
     $("historyNextBtn").addEventListener("click", () => changeHistoryPage(1));
+    $("btnExportExcel").addEventListener("click", exportHistoryExcel);
     ["chartDateFrom", "chartDateTo"].forEach(id => $(id).addEventListener("change", fetchChartData));
     document.querySelectorAll(".menu-btn").forEach(b => b.addEventListener("click", () => setActiveScreen(b.dataset.screen)));
 

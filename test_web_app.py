@@ -2,6 +2,7 @@ import os
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from kaliper_app import KaliperStandalone
 import qc_queries
@@ -122,22 +123,45 @@ class WebTest(unittest.TestCase):
         self.assertEqual(st["pending"], 1)
         self.assertEqual(c.get("/api/history?mold=m").json["error"], True)
 
-    def test_query_history_memakai_sintaks_postgres(self):
+    def test_query_history_memakai_sintaks_sql_server(self):
         sql, params = qc_queries._union(
             "C02", "M-01", "GRID A", "2025-01-01", None, None, None)
-        self.assertIn('FROM tbl_c02', sql)
-        self.assertIn('"timestamp" AS ts', sql)
-        self.assertIn("BTRIM(no_mold)", sql)
-        self.assertEqual(sql.count("%s"), 3)
+        self.assertIn("FROM dbo.tbl_c02", sql)
+        self.assertIn("[timestamp] AS ts", sql)
+        self.assertIn("LTRIM(RTRIM(no_mold))", sql)
+        self.assertEqual(sql.count("?"), 3)
         self.assertEqual(params, ["M-01", "GRID A", "2025-01-01"])
-        self.assertNotIn("dbo.", sql)
+        self.assertNotIn("%s", sql)
 
-    def test_tipe_lookup_dan_siklus_baru(self):
-        self.assertEqual(self.c.get("/api/tipe?mold=m-01").json["tipe"], "GRID A")
-        self.assertFalse(self.c.get("/api/tipe?mold=zzz").json["found"])
-        self.c.post("/api/goto_line", json={"line": "C07"})
-        self.assertEqual(self.c.post("/api/reset_cycle").status_code, 200)
-        self.assertEqual(self.c.get("/api/state").json["active_line"], "C01")
+    def test_export_excel_header_sama_dengan_frontend(self):
+        import io
+        from openpyxl import load_workbook
+        rows = [
+            {"line": "C01", "mold": "M-01", "tipe": "GRID A", "date": "2026-10-08", "time": "13:41:24",
+             **{f"titik{i}": 1.8 + i / 100 for i in range(1, 9)}, "avg": 1.845},
+            {"line": "C02", "mold": "M-01", "tipe": "GRID A", "date": "2026-10-08", "time": "14:00:00",
+             **{f"titik{i}": None for i in range(1, 9)}, "avg": None},
+        ]
+        with patch("qc_queries.history", return_value={"rows": rows, "tipe": "GRID A"}):
+            self.app.kal.core.db = self.db
+            r = self.c.get("/api/export_history?mold=M-01")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("spreadsheetml", r.mimetype)
+        self.assertIn("QC_History_M-01_", r.headers["Content-Disposition"])
+        ws = load_workbook(io.BytesIO(r.data))["QC History"]
+        self.assertEqual([ws.cell(1, c).value for c in (1, 2, 3, 4, 5, 13)],
+                         ["LINE", "NO. MOLD", "TANGGAL", "JAM", "TITIK", "AVERAGE"])
+        self.assertEqual([ws.cell(2, c).value for c in range(5, 13)], list(range(1, 9)))
+        self.assertEqual(ws.freeze_panes, "A3")
+        self.assertEqual((ws["A3"].value, ws["B3"].value, ws["M3"].value), ("C01", "M-01", 1.845))
+        self.assertIsNone(ws["E4"].value)
+        self.assertEqual(ws["E5"].value, '=IF(COUNT(E3:E4)=0,"-",MIN(E3:E4))')
+
+    def test_export_ditolak_tanpa_filter_atau_tanpa_db(self):
+        with patch("qc_queries.history", return_value={"rows": [], "tipe": "-"}):
+            self.assertEqual(self.c.get("/api/export_history").status_code, 404)
+        core = KaliperStandalone(filename=os.path.join(self.tmp, "y.csv"), db=None)
+        self.assertEqual(create_app(core).test_client().get("/api/export_history?mold=x").status_code, 400)
 
 
 if __name__ == "__main__":

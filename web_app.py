@@ -3,17 +3,21 @@ Kaliper QC - tampilan WEB (Flask) di atas logika kaliper_app.py
 
 Alur data tetap sama dengan aplikasi tkinter:
   Kaliper -> MarCom (Keyboard code) -> browser (kolom input tersembunyi) -> Flask
-          -> CSV lokal + PostgreSQL (tbl_cNN) lewat KaliperStandalone / QCDatabase
+          -> CSV lokal + SQL Server (tbl_cNN) lewat KaliperStandalone / QCDatabase
 
 Jalankan : python web_app.py          (lalu buka http://localhost:5000)
-Env      : WEB_HOST (default 0.0.0.0), WEB_PORT (default 5000); DB_ENABLED=1 untuk mengaktifkan PostgreSQL
+Env      : WEB_HOST (default 0.0.0.0), WEB_PORT (default 5000) + DB_* seperti kaliper_app.py
 """
 import os
 import threading
 import time
 
-from flask import Flask, jsonify, request, send_from_directory
+import re
+from datetime import datetime
 
+from flask import Flask, jsonify, request, send_file, send_from_directory
+
+import excel_export
 import qc_queries
 from kaliper_app import (LINE_COUNT, SISI_COUNT, DB_NAME, DB_PORT, DB_SERVER, KaliperStandalone,
                          make_db, short_err)
@@ -23,6 +27,7 @@ WEB_PORT = int(os.getenv("WEB_PORT", "5000"))
 DB_CHECK_EVERY_SEC = 5.0
 AUTO_RETRY_EVERY_SEC = 30.0
 MOLD_CACHE_TTL_SEC = 15.0
+EXPORT_MAX_ROWS = 50000
 
 LINES = [f"C{i:02d}" for i in range(1, LINE_COUNT + 1)]
 
@@ -43,7 +48,7 @@ class WebKaliper:
         self.flush_msg = ""
 
         self._db_ok = None if core.db is not None else False
-        self._db_msg = "" if core.db is not None else "Mode CSV saja (koneksi database nonaktif)"
+        self._db_msg = "" if core.db is not None else "Mode CSV saja (DB_PASSWORD belum diisi)"
         self._molds = {"ts": 0.0, "data": []}
 
         if core.db is not None:
@@ -309,6 +314,30 @@ def create_app(core=None):
     def api_history_signature():
         return _db_query(qc_queries.signature)
 
+
+    @app.route("/api/export_history")
+    def api_export_history():
+        """Unduh riwayat (sesuai filter di layar) sebagai file Excel."""
+        if kal.core.db is None:
+            return jsonify({"error": True, "message": "Mode CSV saja - ekspor dari DB tidak tersedia."}), 400
+        args = request.args.to_dict()
+        args["limit"] = str(EXPORT_MAX_ROWS)
+        try:
+            data = qc_queries.history(kal.core.db, args, max_limit=EXPORT_MAX_ROWS)
+        except ValueError as e:
+            return jsonify({"error": True, "message": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": True, "message": short_err(e)}), 500
+        rows = data["rows"]
+        if not rows:
+            return jsonify({"error": True, "message": "Tidak ada data untuk diunduh. Pilih Line, Mold, atau Tipe dulu."}), 404
+        filters = {k: (args.get(k) or "").strip() for k in
+                   ("line", "mold", "tipe", "date_from", "date_to", "time_from", "time_to")}
+        buf = excel_export.build_history_workbook(rows, filters, truncated=len(rows) >= EXPORT_MAX_ROWS)
+        label = re.sub(r"[^A-Za-z0-9_-]+", "_", filters["mold"] or filters["line"] or filters["tipe"] or "ALL")
+        name = f"QC_History_{label}_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
+        return send_file(buf, as_attachment=True, download_name=name,
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     return app
 
 

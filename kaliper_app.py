@@ -1,35 +1,38 @@
 """
-Kaliper -> MarCom (Keyboard code) -> Python -> CSV lokal + PostgreSQL (DB qc)
+Kaliper -> MarCom (Keyboard code) -> Python -> CSV lokal + SQL Server (DB qc)
 
 Jalankan pengukuran :  python kaliper_app.py
-Cek koneksi DB      :  set DB_ENABLED=1 lalu python kaliper_app.py --cek-db
-Koneksi database nonaktif secara default. Aktifkan dengan DB_ENABLED=1 dan atur
-DB_HOST, DB_PORT, DB_DATABASE, DB_USER, serta DB_PASSWORD bila sudah diperlukan.
+Cek koneksi DB      :  python kaliper_app.py --cek-db
+Password DB TIDAK ditulis di kode; isi lewat environment variable DB_PASSWORD
+(lihat start_kaliper.bat).
 """
 import csv
 import math
 import os
 import queue
 import re
+import socket
 import sys
 import threading
 import time
 from datetime import datetime
 
 try:
-    import psycopg
-    from psycopg.rows import namedtuple_row
-except ImportError:  # aplikasi tetap dapat berjalan dalam mode CSV saja
-    psycopg = None
-    namedtuple_row = None
+    import pyodbc
+except ImportError:  # biar program tetap jalan (mode CSV saja)
+    pyodbc = None
 
 # ============================ KONFIGURASI DB ============================
-DB_ENABLED = os.getenv("DB_ENABLED", "0").strip().lower() in ("1", "true", "yes", "on")
-DB_SERVER = os.getenv("DB_HOST", "localhost")
-DB_PORT = int(os.getenv("DB_PORT", "5432"))
+DB_SERVER = os.getenv("DB_SERVER", "gsportal-DEV01")
+DB_PORT = int(os.getenv("DB_PORT", "1443"))
 DB_NAME = os.getenv("DB_DATABASE", "qc")
-DB_USER = os.getenv("DB_USER", "postgres")
+DB_USER = os.getenv("DB_USER", "dev01-bedul")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_DRIVERS = [
+    os.getenv("DB_DRIVER_1", "ODBC Driver 18 for SQL Server"),
+    os.getenv("DB_DRIVER_2", "ODBC Driver 17 for SQL Server"),
+    os.getenv("DB_DRIVER_3", "SQL Server"),
+]
 
 LINE_COUNT = 22
 SISI_COUNT = 8
@@ -44,11 +47,12 @@ def short_err(e):
 EXPECTED_COLS = ["timestamp", "tipe", "no_mold"] + [f"sisi_{c}" for c in "abcdefgh"] + ["avg"]
 
 COLUMNS_SQL = (
-    "SELECT c.table_name, c.column_name, c.data_type, c.character_maximum_length, c.numeric_precision, "
-    "c.numeric_scale, c.is_nullable, c.column_default, (c.is_identity = 'YES')::int, "
-    "(c.is_generated <> 'NEVER')::int FROM information_schema.columns c "
-    "WHERE c.table_schema = current_schema() AND c.table_name ~ '^tbl_c[0-9]{2}$' "
-    "ORDER BY c.table_name, c.ordinal_position"
+    "SELECT c.TABLE_NAME, c.COLUMN_NAME, c.DATA_TYPE, c.CHARACTER_MAXIMUM_LENGTH, c.NUMERIC_PRECISION, "
+    "c.NUMERIC_SCALE, c.IS_NULLABLE, c.COLUMN_DEFAULT, "
+    "COLUMNPROPERTY(OBJECT_ID(QUOTENAME(c.TABLE_SCHEMA)+'.'+QUOTENAME(c.TABLE_NAME)), c.COLUMN_NAME, 'IsIdentity'), "
+    "COLUMNPROPERTY(OBJECT_ID(QUOTENAME(c.TABLE_SCHEMA)+'.'+QUOTENAME(c.TABLE_NAME)), c.COLUMN_NAME, 'IsComputed') "
+    "FROM INFORMATION_SCHEMA.COLUMNS c WHERE c.TABLE_NAME LIKE 'tbl[_]c[0-9][0-9]' "
+    "ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION"
 )
 
 
@@ -126,19 +130,28 @@ class QCDatabase:
         self.server, self.port, self.database = server, port, database
         self.user, self.password = user, password
 
+    @staticmethod
+    def _q(v):
+        # Bungkus nilai agar karakter spesial (; { } @ !) aman di connection string ODBC
+        return "{" + str(v).replace("}", "}}") + "}"
+
+    def _conn_str(self, driver):
+        return (f"DRIVER={{{driver}}};SERVER={self.server},{self.port};"
+                f"DATABASE={self.database};UID={self._q(self.user)};"
+                f"PWD={self._q(self.password)};TrustServerCertificate=yes;")
+
     def connect(self):
-        if psycopg is None:
-            raise RuntimeError("psycopg belum terpasang (pip install 'psycopg[binary]')")
-        return psycopg.connect(
-            host=self.server,
-            port=self.port,
-            dbname=self.database,
-            user=self.user,
-            password=self.password or None,
-            connect_timeout=5,
-            autocommit=True,
-            row_factory=namedtuple_row,
-        )
+        if pyodbc is None:
+            raise RuntimeError("pyodbc belum terpasang (pip install pyodbc)")
+        if not self.password:
+            raise RuntimeError("DB_PASSWORD belum diisi")
+        last = None
+        for drv in DB_DRIVERS:
+            try:
+                return pyodbc.connect(self._conn_str(drv), autocommit=True, timeout=5)
+            except Exception as e:
+                last = e
+        raise last
 
     @staticmethod
     def table_for_line(line):
@@ -166,33 +179,50 @@ class QCDatabase:
         conn = self.connect()
         try:
             conn.cursor().execute(
-                f'INSERT INTO {table} ("timestamp", tipe, no_mold, sisi_a, sisi_b, sisi_c, sisi_d, '
-                'sisi_e, sisi_f, sisi_g, sisi_h, "avg") VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
-                (ts, tipe, mold, *sides[:8], avg))
+                f"INSERT INTO {table} (timestamp, tipe, no_mold, sisi_a, sisi_b, sisi_c, sisi_d, "
+                "sisi_e, sisi_f, sisi_g, sisi_h, [avg]) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                ts, tipe, mold, *sides[:8], avg)
         finally:
             conn.close()
 
     def diagnose(self):
-        if not DB_ENABLED:
-            print("[DB] Koneksi database nonaktif. Set DB_ENABLED=1 untuk mengaktifkan PostgreSQL.")
-            return
-        print(f"Host     : {self.server}  Port: {self.port}")
+        print(f"Server   : {self.server}  Port: {self.port}")
         print(f"Database : {self.database}  User: {self.user}")
         print(f"Password : {'terisi' if self.password else 'KOSONG (set DB_PASSWORD)'}\n")
 
-        print("[1] Koneksi PostgreSQL")
+        print("[1] Driver ODBC")
+        if pyodbc is None:
+            print("    GAGAL - pyodbc belum terpasang: pip install pyodbc"); return
+        drivers = [d for d in pyodbc.drivers() if "SQL Server" in d]
+        print("    Terpasang:", ", ".join(drivers) or "tidak ada driver SQL Server!")
+
+        print("[2] Jaringan (TCP)")
+        open_ports = []
+        for p in dict.fromkeys([self.port, 1433, 1443]):
+            try:
+                socket.create_connection((self.server, p), timeout=3).close()
+                print(f"    Port {p}: TERBUKA"); open_ports.append(p)
+            except socket.gaierror:
+                print(f"    Nama host '{self.server}' tidak ditemukan (DNS/VPN/jaringan?)"); break
+            except Exception as e:
+                print(f"    Port {p}: tertutup/timeout ({short_err(e)})")
+        if open_ports and self.port not in open_ports:
+            print(f"    >> Port {self.port} tertutup tapi {open_ports[0]} terbuka. "
+                  f"Coba set DB_PORT={open_ports[0]}")
+
+        print("[3] Login & database")
         try:
             conn = self.connect()
         except Exception as e:
             print("    GAGAL:", short_err(e)); return
         try:
             cur = conn.cursor()
-            cur.execute("SELECT current_database(), current_user")
+            cur.execute("SELECT DB_NAME(), SUSER_SNAME()")
             db, usr = cur.fetchone()
             print(f"    OK - terhubung ke DB '{db}' sebagai '{usr}'")
 
-            print("[2] Tabel yang dibutuhkan")
-            cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema()")
+            print("[4] Tabel yang dibutuhkan")
+            cur.execute("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES")
             ada = {r[0].lower() for r in cur.fetchall()}
             butuh = [f"tbl_c{i:02d}" for i in range(1, LINE_COUNT + 1)]
             hilang = [t for t in butuh if t not in ada]
@@ -204,11 +234,11 @@ class QCDatabase:
 
             ada_tbl = next((t for t in butuh if t in ada), None)
             if ada_tbl:
-                cur.execute("SELECT has_table_privilege(current_user, %s, 'INSERT')", (ada_tbl,))
+                cur.execute("SELECT HAS_PERMS_BY_NAME(?, 'OBJECT', 'INSERT')", ada_tbl)
                 ok = cur.fetchone()[0]
-                print(f"[3] Izin INSERT ke {ada_tbl}: {'YA' if ok else 'TIDAK'}")
+                print(f"[5] Izin INSERT ke {ada_tbl}: {'YA' if ok == 1 else 'TIDAK'}")
 
-                print("[4] Struktur kolom tbl_cNN (hanya membaca)")
+                print("[6] Struktur kolom tbl_cNN (hanya membaca)")
                 try:
                     cur.execute(COLUMNS_SQL)
                     for ln in analisa_kolom(cur.fetchall()):
@@ -216,9 +246,9 @@ class QCDatabase:
                 except Exception as e:
                     print("    GAGAL membaca struktur:", short_err(e))
 
-                print(f"[5] Contoh 3 data terakhir di {ada_tbl} (untuk dibandingkan formatnya)")
+                print(f"[7] Contoh 3 data terakhir di {ada_tbl} (untuk dibandingkan formatnya)")
                 try:
-                    cur.execute(f'SELECT * FROM {ada_tbl} ORDER BY "timestamp" DESC LIMIT 3')
+                    cur.execute(f"SELECT TOP 3 * FROM {ada_tbl} ORDER BY [timestamp] DESC")
                     names = [d[0] for d in cur.description]
                     rows = cur.fetchall()
                     print("    " + " | ".join(names))
@@ -230,11 +260,10 @@ class QCDatabase:
                     print("    GAGAL membaca contoh data:", short_err(e))
 
             if "mold_mapping" in ada:
-                print("[6] mold_mapping")
+                print("[8] mold_mapping")
                 try:
-                    cur.execute("SELECT column_name, data_type FROM information_schema.columns "
-                                "WHERE table_schema = current_schema() AND table_name='mold_mapping' "
-                                "ORDER BY ordinal_position")
+                    cur.execute("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS "
+                                "WHERE TABLE_NAME='mold_mapping' ORDER BY ORDINAL_POSITION")
                     cols = [(r[0], r[1]) for r in cur.fetchall()]
                     print("    kolom:", ", ".join(f"{n} ({t})" for n, t in cols))
                     nm = {n.lower() for n, _ in cols}
@@ -359,7 +388,7 @@ class KaliperStandalone:
                 r = self.pending[0]
                 if self.db is None:
                     print(f"[DB] Mode offline - {len(self.pending)} baris menunggu (data mentah ada di {self.filename}).")
-                    self._notify(r["line"], False, "Mode CSV saja - data tersimpan di CSV")
+                    self._notify(r["line"], False, "Mode offline (DB_PASSWORD kosong) - data ada di CSV")
                     return
                 try:
                     self.db.insert_line(r["line"], r["tipe"], r["mold"], r["sides"], r["avg"], r["ts"])
@@ -369,7 +398,7 @@ class KaliperStandalone:
                     print(f"           {len(self.pending)} baris menunggu, dicoba lagi saat line berikutnya selesai.")
                     self._notify(r["line"], False, msg)
                     return
-                print(f"[DB OK] {r['line']} tersimpan di PostgreSQL.")
+                print(f"[DB OK] {r['line']} tersimpan di SQL Server.")
                 self.pending.pop(0)
                 self._notify(r["line"], True, "tersimpan")
         finally:
@@ -701,7 +730,7 @@ class KaliperGUI:
 
     def _check_db(self):
         if self.app.db is None:
-            self.lbl_db.config(text="DB: MODE CSV SAJA (koneksi database nonaktif)", fg="#B26A00")
+            self.lbl_db.config(text="DB: MODE CSV SAJA (DB_PASSWORD belum diisi - jalankan lewat start_kaliper.bat)", fg="#B26A00")
             return
 
         def work():
@@ -788,8 +817,8 @@ class KaliperGUI:
 
 # ================================ CLI ===================================
 def make_db():
-    if not DB_ENABLED:
-        print("[DB] DB_ENABLED tidak aktif -> mode CSV saja.")
+    if not DB_PASSWORD:
+        print("[DB] DB_PASSWORD belum diisi -> mode CSV saja (jalankan lewat start_kaliper.bat).")
         return None
     return QCDatabase()
 
