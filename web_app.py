@@ -8,6 +8,7 @@ Alur data tetap sama dengan aplikasi tkinter:
 Jalankan : python web_app.py          (lalu buka http://localhost:5000)
 Env      : WEB_HOST (default 0.0.0.0), WEB_PORT (default 5000) + DB_* seperti kaliper_app.py
 """
+import csv
 import os
 import threading
 import time
@@ -338,6 +339,104 @@ def create_app(core=None):
         name = f"QC_History_{label}_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
         return send_file(buf, as_attachment=True, download_name=name,
                          mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    @app.route("/api/export_latest")
+    def api_export_latest():
+        """Unduh data pengukuran terbaru yang sudah masuk sebagai file Excel (.xlsx)."""
+        line = (request.args.get("line") or "").strip().upper()
+        if line and line not in LINES:
+            line = ""
+
+        rows = []
+        source_label = "Database"
+
+        if kal.core.db is not None:
+            try:
+                union_sql, params = qc_queries._union(line, "", "", None, None, None, None)
+                limit = int(request.args.get("limit") or 1000)
+                sql = (f"SELECT TOP {limit} q.line, q.ts, q.tipe, q.no_mold, q.sisi_a, q.sisi_b, q.sisi_c, q.sisi_d, "
+                       f"q.sisi_e, q.sisi_f, q.sisi_g, q.sisi_h, q.avg_value FROM ({union_sql}) AS q ORDER BY q.ts DESC")
+                conn = kal.core.db.connect()
+                try:
+                    cur = conn.cursor()
+                    cur.execute(sql, params)
+                    for r in cur.fetchall():
+                        ts = r.ts
+                        row = {
+                            "line": r.line,
+                            "date": ts.strftime("%Y-%m-%d") if ts else "-",
+                            "time": ts.strftime("%H:%M:%S") if ts else "-",
+                            "tipe": str(r.tipe).strip() if r.tipe else "-",
+                            "mold": str(r.no_mold).strip() if r.no_mold else "-",
+                            "avg": r.avg_value
+                        }
+                        for i, k in enumerate("abcdefgh", 1):
+                            row[f"titik{i}"] = getattr(r, f"sisi_{k}")
+                        rows.append(row)
+                finally:
+                    conn.close()
+            except Exception as e:
+                print(f"[export_latest] DB query error: {short_err(e)}")
+
+        # Fallback ke CSV bila DB belum ada / kosong
+        if not rows and os.path.exists(kal.core.filename):
+            source_label = "CSV Lokal"
+            try:
+                with open(kal.core.filename, "r", encoding="utf-8") as f:
+                    reader = csv.reader(f)
+                    next(reader, None)
+                    grouped = {}
+                    for row in reader:
+                        if len(row) >= 4:
+                            b, s, val, w = row[0].strip(), row[1].strip(), row[2].strip(), row[3].strip()
+                            if line and b.upper() != line:
+                                continue
+                            key = (b, w[:16])
+                            if key not in grouped:
+                                grouped[key] = {
+                                    "line": b, "date": w[:10] if len(w) >= 10 else "-",
+                                    "time": w[11:] if len(w) >= 19 else "-",
+                                    "mold": "-", "tipe": "-", "sides": {}, "w": w
+                                }
+                            try:
+                                s_idx = int(re.search(r"\d+", s).group(0))
+                                grouped[key]["sides"][s_idx] = float(val)
+                            except Exception:
+                                pass
+                    for g in sorted(grouped.values(), key=lambda x: x["w"], reverse=True):
+                        pts = {f"titik{i}": g["sides"].get(i) for i in range(1, 9)}
+                        vals = [v for v in pts.values() if v is not None]
+                        avg_val = round(sum(vals) / len(vals), 3) if vals else None
+                        rows.append({
+                            "line": g["line"], "date": g["date"], "time": g["time"],
+                            "mold": g["mold"], "tipe": g["tipe"], "avg": avg_val, **pts
+                        })
+            except Exception as e:
+                print(f"[export_latest] CSV parse error: {short_err(e)}")
+
+        if not rows:
+            return jsonify({"error": True, "message": "Belum ada data pengukuran yang masuk untuk diunduh."}), 404
+
+        filters = {
+            "Line": line or "Semua Line",
+            "Sumber Data": source_label,
+            "Waktu Unduh": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        buf = excel_export.build_history_workbook(rows, filters, truncated=False)
+        label = line or "SemuaLine"
+        name = f"QC_Pengukuran_{label}_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
+        return send_file(buf, as_attachment=True, download_name=name,
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    @app.route("/api/download_csv")
+    def api_download_csv():
+        """Unduh file mentah hasil_pengukuran.csv."""
+        if not os.path.exists(kal.core.filename):
+            kal.core._init_csv()
+        return send_file(os.path.abspath(kal.core.filename), as_attachment=True,
+                         download_name=f"hasil_pengukuran_{datetime.now():%Y%m%d_%H%M%S}.csv",
+                         mimetype="text/csv")
+
     return app
 
 

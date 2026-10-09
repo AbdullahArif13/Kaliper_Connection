@@ -164,5 +164,22 @@ class WebTest(unittest.TestCase):
         self.assertEqual(create_app(core).test_client().get("/api/export_history?mold=x").status_code, 400)
 
 
+    def test_export_latest_menghasilkan_excel(self):
+        self.app.kal.core.set_context("M-01", "GRID A")
+        self.app.kal.core.process_input("1.25")
+        r = self.c.get("/api/export_latest")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("spreadsheetml", r.mimetype)
+        self.assertIn("QC_Pengukuran_", r.headers["Content-Disposition"])
+
+    def test_download_csv_menghasilkan_file_csv(self):
+        self.app.kal.core.set_context("M-01", "GRID A")
+        self.app.kal.core.process_input("1.25")
+        r = self.c.get("/api/download_csv")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.mimetype, "text/csv")
+        self.assertIn("hasil_pengukuran_", r.headers["Content-Disposition"])
+
+
 if __name__ == "__main__":
     unittest.main()

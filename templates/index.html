@@ -162,15 +162,24 @@
         .action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .small-btn { min-width: 0; padding: 11px 16px; font-size: 12px; letter-spacing: 0.08em; border-radius: 14px; }
         .status-neutral { color: #b26a00; }
+        .nav-actions { display: flex; align-items: center; gap: 16px; }
+        .nav-download-btn { background: rgba(255, 255, 255, 0.18); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.35); padding: 9px 18px; border-radius: 999px; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease; backdrop-filter: blur(8px); }
+        .nav-download-btn:hover { background: #ffffff; color: var(--gs-blue-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.22); }
+        .nav-download-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         @media (max-width: 1120px) { .line-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-        @media (max-width: 760px) { .line-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .caliper-input { font-size: 1.2rem; } }
+        @media (max-width: 760px) { .line-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .caliper-input { font-size: 1.2rem; } .nav-actions { width: 100%; justify-content: space-between; } .nav-download-btn { font-size: 11px; padding: 6px 12px; } }
     </style>
 </head>
 <body>
 <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 <header class="top-navbar">
     <div class="nav-title">Digital Caliper Measurement System</div>
-    <img src="/static/Logo GS.png" alt="GS Battery Logo" class="header-logo" />
+    <div class="nav-actions">
+        <button type="button" class="nav-download-btn" id="btnNavDownload" title="Download Excel data pengukuran yang sudah masuk">
+            📥 Download Data Excel
+        </button>
+        <img src="/static/Logo GS.png" alt="GS Battery Logo" class="header-logo" />
+    </div>
 </header>
 
 <main class="viewport">
@@ -217,6 +226,9 @@
                             <div class="section-kicker">Measurement Points</div>
                             <h2>Pembacaan Aktif dari Kaliper</h2>
                         </div>
+                        <button type="button" class="primary-btn small-btn" id="btnDownloadDashboardTop" style="background: linear-gradient(180deg, #10b981 0%, #059669 100%); color: #fff; min-width: auto; padding: 10px 20px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);" title="Download data hasil pengukuran yang sudah masuk ke Excel (.xlsx)">
+                            📥 Download Data Excel
+                        </button>
                     </div>
 
                     <input type="text" id="caliperInput" class="caliper-capture-input" aria-hidden="true" inputmode="decimal" autocomplete="off" spellcheck="false" tabindex="-1" />
@@ -246,6 +258,9 @@
                                     <button type="button" class="primary-btn btn-secondary small-btn" id="btnClearLine">Kosongkan Line</button>
                                     <button type="button" class="primary-btn btn-secondary small-btn" id="btnFlush">Kirim Ulang</button>
                                     <button type="button" class="primary-btn btn-secondary small-btn" id="btnResetCycle">Siklus Baru</button>
+                                    <button type="button" class="primary-btn small-btn" id="btnDownloadDashboard" style="background: linear-gradient(180deg, #10b981 0%, #059669 100%); color: #fff; min-width: auto; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);" title="Download data hasil pengukuran yang sudah masuk ke Excel (.xlsx)">
+                                        📥 Download Excel
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -782,21 +797,59 @@
             if (sig !== null && sig !== historySignatureValue) { historySignatureValue = sig; await fetchHistoryData(); }
         } finally { isCheckingHistorySignature = false; }
     }
+    async function downloadLatestDataExcel() {
+        const btnList = [
+            $("btnNavDownload"),
+            $("btnDownloadDashboardTop"),
+            $("btnDownloadDashboard")
+        ].filter(Boolean);
+        btnList.forEach(b => { b.disabled = true; b.dataset.old = b.innerHTML; b.innerHTML = "⏳ Menyiapkan..."; });
+        showToast("Menyiapkan file Excel data yang sudah masuk...", "info");
+        try {
+            const activeLine = ($("lineSelectMain") && $("lineSelectMain").value) || "";
+            const url = "/api/export_latest" + (activeLine ? `?line=${encodeURIComponent(activeLine)}` : "");
+            const r = await fetch(url, { cache: "no-store" });
+            if (!r.ok) {
+                let msg = "Belum ada data untuk diunduh.";
+                try { msg = (await r.json()).message || msg; } catch (e) {}
+                showToast(msg, "error");
+                return;
+            }
+            const m = /filename="?([^";]+)"?/.exec(r.headers.get("Content-Disposition") || "");
+            const urlBlob = URL.createObjectURL(await r.blob());
+            const a = document.createElement("a");
+            a.href = urlBlob;
+            a.download = m ? m[1] : `QC_Pengukuran_${activeLine || "SemuaLine"}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(urlBlob), 5000);
+            showToast("File Excel data pengukuran berhasil diunduh!", "success");
+        } catch (e) {
+            showToast("Server aplikasi tidak terjangkau: " + (e.message || e), "error");
+        } finally {
+            btnList.forEach(b => { b.disabled = false; if (b.dataset.old) b.innerHTML = b.dataset.old; });
+        }
+    }
     async function exportHistoryExcel() {
         const p = getHistoryQueryParams(); delete p.limit;
-        if (!p.line && !p.mold && !p.tipe) { showToast("Pilih Line, Mold, atau Tipe dulu sebelum download.", "error"); return; }
+        let url = "/api/export_history?" + new URLSearchParams(p);
+        if (!p.line && !p.mold && !p.tipe) {
+            const activeLine = ($("lineSelectMain") && $("lineSelectMain").value) || "";
+            url = "/api/export_latest" + (activeLine ? `?line=${encodeURIComponent(activeLine)}` : "");
+        }
         const btn = $("btnExportExcel"); btn.disabled = true; const old = btn.textContent; btn.textContent = "Menyiapkan...";
         try {
-            const r = await fetch("/api/export_history?" + new URLSearchParams(p), { cache: "no-store" });
+            const r = await fetch(url, { cache: "no-store" });
             if (!r.ok) {
                 let msg = "Gagal membuat file Excel.";
                 try { msg = (await r.json()).message || msg; } catch (e) { }
                 showToast(msg, "error"); return;
             }
             const m = /filename="?([^";]+)"?/.exec(r.headers.get("Content-Disposition") || "");
-            const url = URL.createObjectURL(await r.blob());
-            const a = document.createElement("a"); a.href = url; a.download = m ? m[1] : "QC_History.xlsx";
-            document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+            const urlBlob = URL.createObjectURL(await r.blob());
+            const a = document.createElement("a"); a.href = urlBlob; a.download = m ? m[1] : "QC_History.xlsx";
+            document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(urlBlob), 5000);
             showToast("File Excel berhasil diunduh.", "success");
         } catch (e) { showToast("Server aplikasi tidak terjangkau.", "error"); }
         finally { btn.disabled = false; btn.textContent = old; }
@@ -940,6 +993,10 @@
     $("historyPrevBtn").addEventListener("click", () => changeHistoryPage(-1));
     $("historyNextBtn").addEventListener("click", () => changeHistoryPage(1));
     $("btnExportExcel").addEventListener("click", exportHistoryExcel);
+    ["btnNavDownload", "btnDownloadDashboardTop", "btnDownloadDashboard"].forEach(id => {
+        const el = $(id);
+        if (el) el.addEventListener("click", downloadLatestDataExcel);
+    });
     ["chartDateFrom", "chartDateTo"].forEach(id => $(id).addEventListener("change", fetchChartData));
     document.querySelectorAll(".menu-btn").forEach(b => b.addEventListener("click", () => setActiveScreen(b.dataset.screen)));
 
