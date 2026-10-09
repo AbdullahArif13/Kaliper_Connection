@@ -11,320 +11,370 @@
         :root {
             --gs-blue-dark: #003a8f; --gs-blue: #0d5fe9; --gs-blue-soft: #eaf2ff;
             --gs-blue-border: rgba(13, 95, 233, 0.22); --gs-red: #e31b23;
-            --bg-main: #edf2f7; --panel: rgba(255, 255, 255, 0.92);
-            --text-main: #10213d; --text-soft: #667085; --ok: #179c4b; --bad: #c82a2a;
-            --shadow-xl: 0 24px 60px rgba(16, 33, 61, 0.14); --shadow-md: 0 10px 24px rgba(16, 33, 61, 0.08);
-            --radius-xl: 26px; --radius-lg: 18px; --header-h: 84px; --footer-h: 42px; --menu-h: 72px;
+            --bg-main: #eef2f8; --text-main: #10213d; --text-soft: #667085; --ok: #179c4b; --bad: #c82a2a;
+            --line: rgba(16, 33, 61, 0.10);
+            --shadow-md: 0 6px 18px rgba(16, 33, 61, 0.07); --shadow-lg: 0 14px 34px rgba(16, 33, 61, 0.10);
+            --side-w: 316px;
         }
         * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: var(--text-main); background: radial-gradient(circle at top left, rgba(13, 95, 233, 0.08), transparent 28%), radial-gradient(circle at bottom right, rgba(0, 58, 143, 0.08), transparent 24%), linear-gradient(180deg, #f5f8fc 0%, #edf2f7 100%); }
-        body { display: flex; flex-direction: column; }
-        .top-navbar { position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); background: linear-gradient(90deg, var(--gs-blue-dark) 0%, #114cb8 48%, #236af0 100%); color: #ffffff; display: flex; justify-content: space-between; align-items: center; padding: 14px 28px; border-bottom: 4px solid var(--gs-red); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18); z-index: 1000; }
-        .nav-title { font-size: 1.05rem; font-weight: 800; letter-spacing: 0.3px; }
-        .header-logo { height: 50px; object-fit: contain; }
-        .bottom-footer { position: fixed; left: 0; right: 0; bottom: 0; height: var(--footer-h); display: flex; justify-content: center; align-items: center; font-size: 0.9rem; color: #4b5565; background: rgba(255,255,255,0.86); backdrop-filter: blur(10px); border-top: 1px solid rgba(16, 33, 61, 0.08); z-index: 1000; }
-        .viewport { position: fixed; top: var(--header-h); bottom: calc(var(--footer-h) + var(--menu-h)); left: 0; right: 0; overflow: hidden; }
-        .screen { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; padding: 30px 22px; display: none; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
-        .screen.active { display: block; }
-        .screen-inner { width: min(1280px, 100%); margin: 0 auto; }
-        .glass-panel { background: var(--panel); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.7); box-shadow: var(--shadow-xl); border-radius: var(--radius-xl); }
-        .section-kicker { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; background: var(--gs-blue-soft); color: var(--gs-blue-dark); font-size: 12px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
-        .hero-layout { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: stretch; }
-        .left-panel, .right-panel, .worksheet-shell { padding: 26px; }
-        .left-panel, .right-panel { display: flex; flex-direction: column; gap: 20px; }
-        .hero-title { margin: 10px 0 6px 0; font-size: 2rem; line-height: 1.08; font-weight: 900; color: #0d1d36; }
-        .field-group { display: flex; flex-direction: column; gap: 8px; }
-        .field-label { font-size: 12px; font-weight: 900; color: var(--gs-blue); letter-spacing: 0.12em; text-transform: uppercase; }
-        
-        .field-box, .field-select { width: 100%; min-height: 58px; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(16, 33, 61, 0.08); background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%); box-shadow: inset 0 0 0 1px rgba(13, 95, 233, 0.03); color: #0f172a; font-size: 1.05rem; font-weight: 900; }
-        .field-select { outline: none; border-left: 5px solid var(--gs-blue); }
-        .field-box { display: flex; align-items: center; border-left: 5px solid var(--gs-blue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .input-with-clear { position: relative; display: flex; align-items: center; width: 100%; }
-        .input-with-clear input { width: 100%; padding-right: 42px !important; }
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: var(--text-main); background: var(--bg-main); }
+        button { font-family: inherit; }
 
-        .status-box { margin-top: auto; padding-top: 16px; border-top: 1px dashed rgba(13, 95, 233, 0.28); display: flex; flex-direction: column; gap: 8px; }
-        .status-text { font-size: 13px; font-weight: 900; }
-        .status-ok { color: var(--ok); }
-        .status-bad { color: var(--bad); }
-        .right-topbar, .worksheet-header { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
-        .right-topbar h2, .worksheet-title-wrap h2 { margin: 10px 0 4px 0; font-size: 1.45rem; font-weight: 900; color: #0d1d36; }
-        .point-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-        .point-card { border-radius: 18px; overflow: hidden; border: 1px solid rgba(13, 95, 233, 0.14); background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%); box-shadow: var(--shadow-md); transition: all 0.2s ease; }
-        .point-head { background: rgba(13, 95, 233, 0.1); color: var(--gs-blue); padding: 12px 10px; text-align: center; font-size: 13px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid rgba(13, 95, 233, 0.1); }
-        .point-value { padding: 22px 12px; text-align: center; font-size: 1.72rem; font-weight: 900; color: #0f172a; cursor: pointer; user-select: none; transition: 0.18s ease; }
-        .point-value:hover { background: rgba(13, 95, 233, 0.06); color: var(--gs-blue); transform: translateY(-2px); }
-        
-        .point-value.old-data { color: #94a3b8; background: #f8fafc; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
-        .point-value.new-data { color: #0f172a; background: transparent; }
+        /* ================= KERANGKA: SIDEBAR + KONTEN ================= */
+        .app { display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); height: 100vh; }
+        .sidebar { position: relative; display: flex; flex-direction: column; gap: 18px; height: 100vh; overflow-y: auto; padding: 20px 18px 16px; color: #fff;
+            background: linear-gradient(180deg, #002a6e 0%, var(--gs-blue-dark) 52%, #0f4fc2 100%); border-right: 4px solid var(--gs-red); scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.3) transparent; }
+        .main { height: 100vh; overflow-y: auto; padding: 28px 34px 34px; scroll-behavior: smooth; }
+        .main-inner { width: min(1240px, 100%); margin: 0 auto; }
 
-        .avg-row { display: flex; justify-content: center; margin-top: 4px; }
-        .avg-badge { min-width: 180px; padding: 14px 18px; border-radius: 18px; border: 1px solid var(--gs-blue-border); background: linear-gradient(180deg, #ffffff 0%, #eef5ff 100%); box-shadow: var(--shadow-md); text-align: center; }
-        .avg-badge .label { font-size: 11px; color: var(--gs-blue-dark); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 900; }
-        .avg-badge .value { margin-top: 4px; font-size: 1.5rem; font-weight: 900; color: var(--gs-blue-dark); }
-        .dashboard-footer-row, .worksheet-footer { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-end; margin-top: auto; }
-        .worksheet-footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(16, 33, 61, 0.08); }
-        .footer-left { flex: 1 1 auto; display: flex; align-items: flex-end; }
-        .footer-left-content { display: flex; flex-direction: column; gap: 8px; }
-        .hint { color: var(--text-soft); font-size: 13px; line-height: 1.5; }
-        .pill { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(16, 33, 61, 0.08); background: #fff; font-size: 13px; font-weight: 800; color: #475467; white-space: nowrap; }
-        .primary-btn { background: linear-gradient(180deg, #1d82ff 0%, var(--gs-blue) 100%); color: #ffffff; border: none; min-width: 170px; padding: 15px 30px; border-radius: 16px; font-size: 1rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; box-shadow: 0 12px 26px rgba(13, 95, 233, 0.26); cursor: pointer; transition: 0.18s ease; }
-        .primary-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 30px rgba(13, 95, 233, 0.28); }
-        .primary-btn:disabled { background: #9ec3ff; box-shadow: none; cursor: not-allowed; transform: none; opacity: 0.88; }
-        .btn-secondary { background: #edf3ff; color: #16315f; box-shadow: none; }
-        .btn-secondary:hover { background: #e2edff; transform: none; }
-        .worksheet-shell { border-radius: 28px; background: rgba(255,255,255,0.88); border: 1px solid rgba(255,255,255,0.78); box-shadow: var(--shadow-xl); }
-        .worksheet-paper { background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%); border: 1px solid rgba(16, 33, 61, 0.08); border-radius: 22px; padding: 24px; position: relative; overflow: hidden; }
-        .worksheet-paper::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to right, rgba(16,33,61,0.035) 1px, transparent 1px), linear-gradient(to bottom, rgba(16,33,61,0.035) 1px, transparent 1px); background-size: 48px 48px; pointer-events: none; opacity: 0.38; }
-        .worksheet-paper > * { position: relative; z-index: 1; }
+        /* ---- merek ---- */
+        .brand { display: flex; flex-direction: column; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,.16); }
+        .header-logo { height: 44px; width: fit-content; max-width: 100%; object-fit: contain; }
+        .brand-title { font-size: .95rem; font-weight: 800; line-height: 1.3; letter-spacing: .2px; color: #fff; }
 
-        .history-filter-grid { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.92); border: 1px solid rgba(16, 33, 61, 0.08); box-shadow: var(--shadow-md); }
-        .filter-group { flex: 1 1 140px; display: flex; flex-direction: column; gap: 8px; }
-        .history-filter-grid .filter-group:nth-child(4), .history-filter-grid .filter-group:nth-child(5) { flex: 2 1 240px; }
-        .filter-label { font-size: 13px; font-weight: 900; color: #344054; }
-        .filter-select, .filter-display, .filter-input { min-height: 44px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(16, 33, 61, 0.1); background: #fff; font-size: 0.98rem; font-weight: 800; color: #0f172a; outline: none; text-transform: uppercase; }
-        .filter-display { display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .range-wrap { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
-        .range-sep { font-size: 13px; font-weight: 800; color: var(--text-soft); text-align: center; }
-        .time-input-wrap { position: relative; display: flex; align-items: center; }
-        .time-input-wrap .filter-input { width: 100%; padding-right: 38px; text-transform: none;}
-        .filter-input[type="date"], .filter-input[type="time"] { text-transform: none; }
-        
-        .filter-clear-btn { position: absolute; right: 8px; width: 24px; height: 24px; border: none; border-radius: 999px; background: #eef4ff; color: var(--gs-blue-dark); font-size: 14px; font-weight: 900; line-height: 1; cursor: pointer; display: none; align-items: center; justify-content: center; padding: 0; transition: 0.15s ease; }
+        /* ---- navigasi ---- */
+        .side-nav { display: flex; flex-direction: column; gap: 6px; }
+        .menu-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 14px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: #cfe0ff; font-size: 13px; font-weight: 800; letter-spacing: .04em; text-align: left; cursor: pointer; transition: .16s ease; }
+        .menu-btn svg { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .menu-btn:hover { background: rgba(255,255,255,.10); color: #fff; }
+        .menu-btn.active { background: #fff; color: var(--gs-blue-dark); box-shadow: 0 8px 20px rgba(0,0,0,.22); }
+
+        /* ---- panel kontrol per layar ---- */
+        .side-panel { display: none; flex-direction: column; gap: 16px; }
+        body[data-screen="screen-dashboard"] .side-panel[data-for="screen-dashboard"],
+        body[data-screen="screen-worksheet"] .side-panel[data-for="screen-worksheet"],
+        body[data-screen="screen-chart-summary"] .side-panel[data-for="screen-chart-summary"] { display: flex; }
+        .side-section { display: flex; flex-direction: column; gap: 11px; }
+        .side-title { font-size: 11px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; color: #8fb2f5; padding-top: 2px; }
+        .field-group, .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .field-label, .filter-label { font-size: 12px; font-weight: 800; color: #cfe0ff; letter-spacing: .02em; }
+
+        .sidebar .field-select, .sidebar .filter-select, .sidebar .filter-input { width: 100%; min-height: 42px; padding: 9px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); border-left: 4px solid var(--gs-blue); background: #fff; color: #0f172a; font-size: .95rem; font-weight: 800; outline: none; }
+        .sidebar .filter-input { text-transform: uppercase; }
+        .sidebar .filter-input[type="date"], .sidebar .filter-input[type="time"] { text-transform: none; }
+        .sidebar .field-select:focus, .sidebar .filter-select:focus, .sidebar .filter-input:focus { box-shadow: 0 0 0 3px rgba(125, 175, 255, .55); }
+        .sidebar .field-select.need-confirm { border-color: #f59e0b; border-left-color: #f59e0b; background: #fffbeb; }
+        .input-with-clear, .time-input-wrap { position: relative; display: flex; align-items: center; width: 100%; }
+        .input-with-clear input { width: 100%; padding-right: 38px !important; }
+        .time-input-wrap .filter-input { padding-right: 38px; }
+        .filter-clear-btn { position: absolute; right: 8px; width: 24px; height: 24px; border: none; border-radius: 999px; background: #eef4ff; color: var(--gs-blue-dark); font-size: 14px; font-weight: 900; line-height: 1; cursor: pointer; display: none; align-items: center; justify-content: center; padding: 0; transition: .15s ease; }
         .filter-clear-btn:hover { background: #dfeaff; transform: scale(1.08); }
         .filter-clear-btn.show { display: inline-flex; }
-        .main-clear-btn { right: 16px; width: 28px; height: 28px; font-size: 16px; }
+        .range-wrap { display: grid; grid-template-columns: 1fr; gap: 5px; }
+        .range-sep { font-size: 11px; font-weight: 800; color: #8fb2f5; text-align: left; letter-spacing: .08em; }
 
-        .table-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px; flex-wrap: wrap; }
-        .table-mini-badge { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(13, 95, 233, 0.16); background: #f6faff; color: var(--gs-blue-dark); font-size: 12px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
-        .page-controls { display: inline-flex; align-items: center; gap: 8px; }
-        .page-btn { width: 36px; height: 36px; border-radius: 999px; border: 1px solid rgba(13,95,233,0.16); background: #fff; color: var(--gs-blue-dark); font-size: 18px; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-        .page-btn:hover { background: #edf4ff; }
-        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .page-info { font-size: 12px; font-weight: 900; color: var(--gs-blue-dark); }
-        .table-wrap { overflow-x: auto; border-radius: 18px; background: #fff; border: 1px solid rgba(16, 33, 61, 0.08); box-shadow: var(--shadow-md); }
-        .qc-table { width: 100%; min-width: 1100px; border-collapse: collapse; background: #fff; }
-        .qc-table th, .qc-table td { border: 1px solid rgba(16, 33, 61, 0.12); padding: 10px 8px; text-align: center; }
-        .qc-table thead th { background: #f8fbff; color: #0d1d36; font-weight: 900; font-size: 12px; }
-        .qc-table thead .group-head { background: #eef4ff; color: var(--gs-blue-dark); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
-        .qc-table tbody td, .qc-table tfoot td { min-height: 42px; font-size: 0.97rem; font-weight: 700; color: #111827; background: rgba(255,255,255,0.96); }
-        .left-sticky { background: #fbfdff !important; font-weight: 800 !important; }
-        .empty-table { padding: 24px !important; color: var(--text-soft) !important; font-weight: 700 !important; text-align: center; }
-        .footer-summary-row td { background: #fbfdff !important; }
-        .footer-summary-label { text-align: center !important; padding-left: 0 !important; color: var(--gs-blue-dark) !important; font-weight: 900 !important; text-transform: uppercase; letter-spacing: 0.08em; vertical-align: middle !important; }
-        
-        .status-stack { display: flex; flex-direction: column; gap: 6px; }
-        .menu-nav { position: fixed; left: 50%; bottom: calc(var(--footer-h) + 10px); transform: translateX(-50%); z-index: 1001; display: flex; gap: 10px; align-items: center; justify-content: center; background: rgba(255,255,255,0.92); border: 1px solid rgba(16,33,61,0.08); box-shadow: var(--shadow-md); border-radius: 999px; padding: 10px; backdrop-filter: blur(10px); max-width: calc(100vw - 24px); flex-wrap: wrap; }
-        .menu-btn { border: 1px solid rgba(13,95,233,0.16); background: #f5f9ff; color: var(--gs-blue-dark); padding: 12px 18px; border-radius: 999px; font-size: 12px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; white-space: nowrap; transition: 0.18s ease; }
-        .menu-btn:hover { transform: translateY(-1px); background: #eaf2ff; }
-        .menu-btn.active { background: linear-gradient(180deg, #1d82ff 0%, var(--gs-blue) 100%); color: #fff; border-color: rgba(13,95,233,0.0); box-shadow: 0 10px 22px rgba(13,95,233,0.24); }
-        .caliper-capture-input { position: fixed; left: -10000px; top: 0; width: 1px; height: 1px; opacity: 0; }
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(16, 33, 61, 0.42); display: none; align-items: center; justify-content: center; padding: 18px; z-index: 9999; }
-        .modal { width: min(430px, 94vw); background: #fff; border-radius: 22px; border: 1px solid rgba(16, 33, 61, 0.08); box-shadow: 0 30px 80px rgba(16, 33, 61, 0.22); padding: 20px; }
-        .modal h3 { margin: 0 0 10px 0; font-size: 1.08rem; color: #0d1d36; }
-        .modal .row { display: grid; gap: 8px; margin-top: 12px; }
-        .modal label { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #344054; }
-        .modal input { width: 100%; padding: 13px 14px; border-radius: 14px; border: 1px solid rgba(16, 33, 61, 0.14); font-size: 1rem; outline: none; }
-        .modal input:focus { border-color: var(--gs-blue); box-shadow: 0 0 0 4px rgba(13, 95, 233, 0.14); }
-        .modal .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
-        .modal .msg { margin-top: 10px; font-size: 12px; min-height: 16px; color: var(--text-soft); }
+        /* ---- tombol di sidebar ---- */
+        .side-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .side-btn { padding: 10px 8px; border-radius: 10px; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.10); color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .02em; cursor: pointer; transition: .16s ease; }
+        .side-btn:hover { background: rgba(255,255,255,.22); }
+        .side-btn:disabled { opacity: .55; cursor: not-allowed; }
+        .side-btn.wide { grid-column: 1 / -1; }
+        .side-btn.dashed { border-style: dashed; background: transparent; color: #cfe0ff; }
+        .side-btn.dashed:hover { background: rgba(255,255,255,.12); color: #fff; }
+        .side-btn.download { grid-column: 1 / -1; border: none; padding: 12px 8px; font-size: 13px; background: linear-gradient(180deg, #10b981 0%, #059669 100%); box-shadow: 0 6px 16px rgba(5, 150, 105, .4); }
+        .side-btn.download:hover { filter: brightness(1.08); }
 
-        @media (max-width: 1120px) { .hero-layout { grid-template-columns: 1fr; } .point-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .history-filter-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 760px) { .top-navbar { padding: 12px 16px; flex-direction: column; gap: 8px; height: auto; min-height: var(--header-h); } .nav-title { font-size: 0.95rem; text-align: center; } .header-logo { height: 42px; } .viewport { top: 92px; bottom: calc(var(--footer-h) + 86px); } .screen { padding: 18px 12px; } .left-panel, .right-panel, .worksheet-shell, .worksheet-paper { padding: 16px; } .hero-title { font-size: 1.55rem; } .point-grid { grid-template-columns: 1fr; } .dashboard-footer-row, .right-topbar, .worksheet-header, .worksheet-footer { align-items: stretch; } .primary-btn { width: 100%; } .range-wrap { grid-template-columns: 1fr; } .table-topbar { justify-content: flex-start; } .menu-nav { border-radius: 18px; width: calc(100vw - 16px); } .menu-btn { flex: 1 1 100%; } }
+        /* ---- status koneksi ---- */
+        .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
+        .status-box { display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; border-radius: 12px; background: rgba(0, 20, 60, .38); border: 1px solid rgba(255,255,255,.12); }
+        .status-text { font-size: 12px; font-weight: 800; color: #cfe0ff; }
+        .status-ok { color: #4ade80; }
+        .status-bad { color: #ff9a9a; }
+        .status-neutral { color: #fcd34d; }
+        .side-credit { font-size: 11px; line-height: 1.45; color: #8fb2f5; text-align: center; }
 
-        .toast-container { position: fixed; top: calc(var(--header-h) + 16px); left: 50%; transform: translateX(-50%); z-index: 11000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-        .toast { min-width: 420px; max-width: min(620px, calc(100vw - 32px)); padding: 20px 24px; border-radius: 20px; border: 1px solid rgba(16, 33, 61, 0.08); background: rgba(255, 255, 255, 0.96); box-shadow: 0 16px 32px rgba(16, 33, 61, 0.18); color: #0f172a; font-size: 1.15rem; font-weight: 800; line-height: 1.5; opacity: 0; transform: translateY(-10px); transition: opacity 0.22s ease, transform 0.22s ease; pointer-events: none; }
-        .toast.show { opacity: 1; transform: translateY(0); }
-        .toast.success { border-left: 6px solid var(--ok); }
-        .toast.error { border-left: 6px solid var(--bad); }
-        .toast.info { border-left: 6px solid var(--gs-blue); }
-    
-        /* ===== tambahan untuk alur kaliper langsung ke DB ===== */
-        .caliper-box { display: flex; flex-direction: column; gap: 8px; }
-        .caliper-row { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
-        .caliper-input { flex: 1 1 260px; min-height: 58px; padding: 12px 16px; border-radius: 16px; border: 2px solid var(--gs-blue); border-left-width: 6px; background: #fff; font-size: 1.5rem; font-weight: 900; letter-spacing: 0.06em; color: #0f172a; outline: none; }
-        .caliper-input:focus { box-shadow: 0 0 0 5px rgba(13, 95, 233, 0.18); }
-        .caliper-input.blurred { border-color: #f59e0b; background: #fffbeb; }
-        .caliper-input.flash { border-color: var(--bad); background: #fde8e8; }
-        .focus-pill { align-self: center; }
-        .field-select.need-confirm { border-color: #f59e0b; background: #fffbeb; }
-        .point-card.active-card { border: 3px solid var(--gs-blue); box-shadow: 0 0 18px rgba(13, 95, 233, 0.4); transform: scale(1.02); }
+        /* ================= KONTEN UTAMA ================= */
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+        .section-kicker { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; background: var(--gs-blue-soft); color: var(--gs-blue-dark); font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+        .page-title { margin: 10px 0 0; font-size: 1.85rem; line-height: 1.1; font-weight: 900; color: #0d1d36; }
+        .card { background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-md); padding: 22px; }
+        .card + .card { margin-top: 20px; }
+        .card-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+        .card-head h2 { margin: 6px 0 0; font-size: 1.2rem; font-weight: 900; color: #0d1d36; }
+        .card-kicker { font-size: 11px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; color: var(--gs-blue); }
+        .pill { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-size: 13px; font-weight: 800; color: #475467; white-space: nowrap; }
+
+        .point-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+        .point-card { border-radius: 16px; overflow: hidden; border: 1px solid rgba(13, 95, 233, 0.16); background: #fff; box-shadow: var(--shadow-md); transition: all .2s ease; }
+        .point-head { background: rgba(13, 95, 233, 0.09); color: var(--gs-blue); padding: 10px; text-align: center; font-size: 12px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; border-bottom: 1px solid rgba(13, 95, 233, 0.1); }
+        .point-value { padding: 24px 10px; text-align: center; font-size: 1.75rem; font-weight: 900; color: #0f172a; user-select: none; }
+        .point-value.old-data { color: #a3b0c4; background: #f8fafc; }
+        .point-value.new-data { color: #0f172a; background: transparent; }
+        .point-card.active-card { border: 3px solid var(--gs-blue); box-shadow: 0 0 0 4px rgba(13, 95, 233, 0.14), 0 10px 24px rgba(13, 95, 233, .25); }
+        .avg-badge { display: flex; align-items: baseline; gap: 12px; padding: 9px 18px; border-radius: 14px; border: 1px solid var(--gs-blue-border); background: linear-gradient(180deg, #fff 0%, #eef5ff 100%); }
+        .avg-badge .label { font-size: 11px; color: var(--gs-blue-dark); letter-spacing: .12em; text-transform: uppercase; font-weight: 900; }
+        .avg-badge .value { font-size: 1.45rem; font-weight: 900; color: var(--gs-blue-dark); }
+
         .line-grid { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 8px; }
-        .line-chip { border-radius: 12px; padding: 8px 4px; text-align: center; border: 1px solid rgba(16, 33, 61, 0.1); background: #fff; font-size: 12px; font-weight: 900; color: #475467; cursor: pointer; transition: 0.15s ease; }
+        .line-chip { border-radius: 12px; padding: 9px 4px; text-align: center; border: 1px solid var(--line); background: #fff; font-size: 12px; font-weight: 900; color: #475467; cursor: pointer; transition: .15s ease; }
         .line-chip small { display: block; font-size: 11px; font-weight: 700; color: #667085; min-height: 14px; }
-        .line-chip:hover { transform: translateY(-1px); }
+        .line-chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
         .line-chip.active { background: #fff2a8; border-color: #e0b800; color: #5b4500; }
         .line-chip.send { background: #e3eeff; border-color: rgba(13, 95, 233, 0.35); color: var(--gs-blue-dark); }
         .line-chip.ok { background: #ddf3dd; border-color: rgba(23, 156, 75, 0.4); color: #146c37; }
         .line-chip.fail { background: #f8d7da; border-color: rgba(200, 42, 42, 0.45); color: #8f1d1d; }
-        .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; font-weight: 700; color: var(--text-soft); }
-        .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 4px; margin-right: 5px; vertical-align: -1px; border: 1px solid rgba(16,33,61,.2); }
-        .action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        .small-btn { min-width: 0; padding: 11px 16px; font-size: 12px; letter-spacing: 0.08em; border-radius: 14px; }
-        .status-neutral { color: #b26a00; }
-        .nav-actions { display: flex; align-items: center; gap: 16px; }
-        .nav-download-btn { background: rgba(255, 255, 255, 0.18); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.35); padding: 9px 18px; border-radius: 999px; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease; backdrop-filter: blur(8px); }
-        .nav-download-btn:hover { background: #ffffff; color: var(--gs-blue-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.22); }
-        .nav-download-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        @media (max-width: 1120px) { .line-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-        @media (max-width: 760px) { .line-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .caliper-input { font-size: 1.2rem; } .nav-actions { width: 100%; justify-content: space-between; } .nav-download-btn { font-size: 11px; padding: 6px 12px; } }
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; font-weight: 700; color: var(--text-soft); }
+        .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 4px; margin-right: 6px; vertical-align: -1px; border: 1px solid rgba(16,33,61,.2); }
+        .hint { margin-top: 18px; padding: 12px 16px; border-radius: 12px; background: #f3f7ff; border: 1px solid var(--gs-blue-border); color: #3b4a66; font-size: 13px; line-height: 1.5; }
+
+        /* ---- tabel riwayat ---- */
+        .table-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+        .table-mini-badge { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(13, 95, 233, 0.16); background: #f6faff; color: var(--gs-blue-dark); font-size: 12px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+        .page-controls { display: inline-flex; align-items: center; gap: 8px; }
+        .page-btn { width: 36px; height: 36px; border-radius: 999px; border: 1px solid rgba(13,95,233,0.16); background: #fff; color: var(--gs-blue-dark); font-size: 18px; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+        .page-btn:hover { background: #edf4ff; }
+        .page-btn:disabled { opacity: .4; cursor: not-allowed; }
+        .page-info { font-size: 12px; font-weight: 900; color: var(--gs-blue-dark); min-width: 90px; text-align: center; }
+        .table-wrap { overflow-x: auto; border-radius: 14px; background: #fff; border: 1px solid var(--line); }
+        .qc-table { width: 100%; min-width: 960px; border-collapse: collapse; background: #fff; }
+        .qc-table th, .qc-table td { border: 1px solid rgba(16, 33, 61, 0.12); padding: 10px 8px; text-align: center; }
+        .qc-table thead th { background: #f8fbff; color: #0d1d36; font-weight: 900; font-size: 12px; }
+        .qc-table thead .group-head { background: #eef4ff; color: var(--gs-blue-dark); letter-spacing: .08em; text-transform: uppercase; }
+        .qc-table tbody td, .qc-table tfoot td { font-size: .95rem; font-weight: 700; color: #111827; background: #fff; }
+        .qc-table tbody tr:hover td { background: #f5f9ff; }
+        .left-sticky { background: #fbfdff !important; font-weight: 800 !important; }
+        .empty-table { padding: 28px !important; color: var(--text-soft) !important; font-weight: 700 !important; text-align: center; }
+        .footer-summary-row td { background: #fbfdff !important; }
+        .footer-summary-label { text-align: center !important; color: var(--gs-blue-dark) !important; font-weight: 900 !important; text-transform: uppercase; letter-spacing: .08em; vertical-align: middle !important; }
+        .chart-box { position: relative; height: calc(100vh - 250px); min-height: 340px; }
+
+        .caliper-capture-input { position: fixed; left: -10000px; top: 0; width: 1px; height: 1px; opacity: 0; }
+
+        /* ---- notifikasi ---- */
+        .toast-container { position: fixed; top: 18px; left: calc(var(--side-w) + (100vw - var(--side-w)) / 2); transform: translateX(-50%); z-index: 11000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { min-width: 340px; max-width: min(560px, calc(100vw - var(--side-w) - 32px)); padding: 16px 20px; border-radius: 16px; border: 1px solid var(--line); background: rgba(255, 255, 255, .98); box-shadow: 0 16px 32px rgba(16, 33, 61, .2); color: #0f172a; font-size: 1rem; font-weight: 800; line-height: 1.45; opacity: 0; transform: translateY(-10px); transition: opacity .22s ease, transform .22s ease; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { border-left: 6px solid var(--ok); }
+        .toast.error { border-left: 6px solid var(--bad); }
+        .toast.info { border-left: 6px solid var(--gs-blue); }
+
+        /* ================= RESPONSIF ================= */
+        @media (max-width: 1280px) { .line-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+        @media (max-width: 1100px) { .point-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .main { padding: 22px 20px 28px; } }
+        @media (max-width: 900px) {
+            html, body { overflow: auto; height: auto; }
+            .app { display: block; height: auto; }
+            .sidebar { height: auto; overflow: visible; border-right: none; border-bottom: 4px solid var(--gs-red); }
+            .main { height: auto; overflow: visible; }
+            .side-nav { flex-direction: row; flex-wrap: wrap; }
+            .menu-btn { width: auto; flex: 1 1 140px; }
+            .toast-container { left: 50%; }
+            .toast { max-width: calc(100vw - 32px); min-width: 0; }
+            .line-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+        }
+        @media (max-width: 560px) { .point-grid { grid-template-columns: 1fr; } .line-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .page-title { font-size: 1.5rem; } }
     </style>
 </head>
-<body>
+<body data-screen="screen-dashboard">
 <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
-<header class="top-navbar">
-    <div class="nav-title">Digital Caliper Measurement System</div>
-    <div class="nav-actions">
-        <button type="button" class="nav-download-btn" id="btnNavDownload" title="Download Excel data pengukuran yang sudah masuk">
-            📥 Download Data Excel
-        </button>
-        <img src="/static/Logo GS.png" alt="GS Battery Logo" class="header-logo" />
-    </div>
-</header>
 
-<main class="viewport">
-    <!-- ======================= DASHBOARD ======================= -->
-    <section class="screen active" id="screen-dashboard">
-        <div class="screen-inner">
-            <div class="hero-layout">
-                <div class="glass-panel left-panel">
-                    <div class="section-kicker">Realtime Measurement</div>
-                    <h1 class="hero-title">QC Live Dashboard</h1>
+<div class="app">
+    <!-- ======================= SIDEBAR ======================= -->
+    <aside class="sidebar">
+        <div class="brand">
+            <img src="/static/Logo GS.png" alt="GS Battery Logo" class="header-logo" />
+            <div class="brand-title">Digital Caliper Measurement System</div>
+        </div>
 
-                    <div class="field-group">
-                        <div class="field-label">Line (C01-C22)</div>
-                        <select class="field-select" id="lineSelectMain"></select>
-                    </div>
+        <nav class="side-nav" aria-label="Navigasi utama">
+            <button class="menu-btn active" id="menuDashboard" data-screen="screen-dashboard" type="button">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+                Main Dashboard
+            </button>
+            <button class="menu-btn" id="menuHistory" data-screen="screen-worksheet" type="button">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>
+                QC Measurement History
+            </button>
+            <button class="menu-btn" id="menuChart" data-screen="screen-chart-summary" type="button">
+                <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 5-7"/></svg>
+                Performansi Mold
+            </button>
+        </nav>
 
-                    <div class="field-group">
-                        <div class="field-label">Tipe Grid</div>
-                        <div class="input-with-clear">
-                            <input type="text" list="tipeListMain" class="field-select" id="val-tipe-main" placeholder="- Ketik / Pilih Tipe Grid -" autocomplete="off" style="font-weight:900;">
-                            <button type="button" class="filter-clear-btn main-clear-btn" id="clear-tipe-main" aria-label="Clear Tipe Grid">×</button>
-                        </div>
-                        <datalist id="tipeListMain"></datalist>
-                    </div>
-                    <div class="field-group">
-                        <div class="field-label">No. Mold</div>
-                        <div class="input-with-clear">
-                            <input type="text" list="moldListMain" class="field-select" id="val-mold-main" placeholder="- Ketik / Pilih No. Mold -" autocomplete="off" style="font-weight:900;">
-                            <button type="button" class="filter-clear-btn main-clear-btn" id="clear-mold-main" aria-label="Clear No Mold">×</button>
-                        </div>
-                        <datalist id="moldListMain"></datalist>
-                        <button type="button" class="btn-secondary" id="btnRegisterMold" style="font-size:11px; padding:6px; margin-top:4px; border-radius:8px; border:none; font-weight:bold; cursor:pointer;">+ Simpan Mold &amp; Tipe ke Master</button>
-                    </div>
-
-                    <div class="status-box">
-                        <div class="status-text">● <span class="js-pending status-ok">ANTRIAN DB : -</span></div>
-                        <div class="status-text">● <span class="js-db status-bad">DB SERVER : NOT ONLINE</span></div>
-                    </div>
+        <!-- ---------- panel: Main Dashboard ---------- -->
+        <div class="side-panel" data-for="screen-dashboard">
+            <div class="side-section">
+                <div class="side-title">Konteks Pengukuran</div>
+                <div class="field-group">
+                    <div class="field-label">Line (C01-C22)</div>
+                    <select class="field-select" id="lineSelectMain"></select>
                 </div>
-
-                <div class="glass-panel right-panel">
-                    <div class="right-topbar">
-                        <div>
-                            <div class="section-kicker">Measurement Points</div>
-                            <h2>Pembacaan Aktif dari Kaliper</h2>
-                        </div>
-                        <button type="button" class="primary-btn small-btn" id="btnDownloadDashboardTop" style="background: linear-gradient(180deg, #10b981 0%, #059669 100%); color: #fff; min-width: auto; padding: 10px 20px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);" title="Download data hasil pengukuran yang sudah masuk ke Excel (.xlsx)">
-                            📥 Download Data Excel
-                        </button>
+                <div class="field-group">
+                    <div class="field-label">Tipe Grid</div>
+                    <div class="input-with-clear">
+                        <input type="text" list="tipeListMain" class="field-select" id="val-tipe-main" placeholder="Ketik / pilih Tipe Grid" autocomplete="off">
+                        <button type="button" class="filter-clear-btn" id="clear-tipe-main" aria-label="Clear Tipe Grid">×</button>
                     </div>
-
-                    <input type="text" id="caliperInput" class="caliper-capture-input" aria-hidden="true" inputmode="decimal" autocomplete="off" spellcheck="false" tabindex="-1" />
-                    <div class="point-grid" id="pointGrid"></div>
-
-                    <div class="avg-row">
-                        <div class="avg-badge"><div class="label">AVERAGE (sementara)</div><div class="value" id="avg-main">-</div></div>
+                    <datalist id="tipeListMain"></datalist>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">No. Mold</div>
+                    <div class="input-with-clear">
+                        <input type="text" list="moldListMain" class="field-select" id="val-mold-main" placeholder="Ketik / pilih No. Mold" autocomplete="off">
+                        <button type="button" class="filter-clear-btn" id="clear-mold-main" aria-label="Clear No Mold">×</button>
                     </div>
+                    <datalist id="moldListMain"></datalist>
+                </div>
+                <button type="button" class="side-btn dashed" id="btnRegisterMold">+ Simpan Mold &amp; Tipe ke Master</button>
+            </div>
 
-                    <div>
-                        <div class="field-label" style="margin-bottom:8px;">Status Line C01 - C22 (klik untuk pindah line)</div>
-                        <div class="line-grid" id="lineGrid"></div>
-                        <div class="legend" style="margin-top:10px;">
-                            <span><i style="background:#fff2a8"></i>Aktif</span>
-                            <span><i style="background:#e3eeff"></i>Mengirim</span>
-                            <span><i style="background:#ddf3dd"></i>Tersimpan di DB</span>
-                            <span><i style="background:#f8d7da"></i>Gagal / menunggu</span>
-                        </div>
-                    </div>
-
-                    <div class="dashboard-footer-row">
-                        <div class="footer-left">
-                            <div class="footer-left-content">
-                                <div class="hint">Setelah Titik 8 terisi, data otomatis diproses lalu pindah ke line berikutnya. Data kaliper ditangkap tanpa menampilkan kolom input.</div>
-                                <div class="action-row">
-                                    <button type="button" class="primary-btn btn-secondary small-btn" id="btnUndo">Undo</button>
-                                    <button type="button" class="primary-btn btn-secondary small-btn" id="btnClearLine">Kosongkan Line</button>
-                                    <button type="button" class="primary-btn btn-secondary small-btn" id="btnFlush">Kirim Ulang</button>
-                                    <button type="button" class="primary-btn btn-secondary small-btn" id="btnResetCycle">Siklus Baru</button>
-                                    <button type="button" class="primary-btn small-btn" id="btnDownloadDashboard" style="background: linear-gradient(180deg, #10b981 0%, #059669 100%); color: #fff; min-width: auto; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);" title="Download data hasil pengukuran yang sudah masuk ke Excel (.xlsx)">
-                                        📥 Download Excel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="submit-group">
-                            <span class="pill" id="pill-status-main">Memuat...</span>
-                        </div>
-                    </div>
+            <div class="side-section">
+                <div class="side-title">Aksi</div>
+                <div class="side-actions">
+                    <button type="button" class="side-btn" id="btnUndo">Undo</button>
+                    <button type="button" class="side-btn" id="btnClearLine">Kosongkan Line</button>
+                    <button type="button" class="side-btn" id="btnFlush">Kirim Ulang</button>
+                    <button type="button" class="side-btn" id="btnResetCycle">Siklus Baru</button>
+                    <button type="button" class="side-btn download" id="btnDownloadDashboard" title="Download data hasil pengukuran yang sudah masuk ke Excel (.xlsx)">📥 Download Excel</button>
                 </div>
             </div>
         </div>
-    </section>
 
-    <!-- ======================= HISTORY ======================= -->
-    <section class="screen" id="screen-worksheet">
-        <div class="screen-inner">
-            <div class="worksheet-shell">
-                <div class="worksheet-paper">
-                    <div class="worksheet-header">
-                        <div class="worksheet-title-wrap">
-                            <div class="section-kicker">Worksheet View</div>
-                            <h2>QC Measurement History</h2>
+        <!-- ---------- panel: QC Measurement History ---------- -->
+        <div class="side-panel" data-for="screen-worksheet">
+            <div class="side-section">
+                <div class="side-title">Filter Riwayat</div>
+                <div class="filter-group"><div class="filter-label">Line</div><select class="filter-select" id="lineSelectSheet"></select></div>
+                <div class="filter-group"><div class="filter-label">Mold</div>
+                    <div class="input-with-clear">
+                        <input type="text" list="moldListSheet" class="filter-input" id="moldSelectSheet" placeholder="Semua Mold" autocomplete="off">
+                        <button type="button" class="filter-clear-btn" id="clear-mold-sheet" aria-label="Clear Filter Mold">×</button>
+                    </div>
+                    <datalist id="moldListSheet"></datalist>
+                </div>
+                <div class="filter-group"><div class="filter-label">Tipe</div>
+                    <div class="input-with-clear">
+                        <input type="text" list="tipeListSheet" class="filter-input" id="metaTipeSheet" placeholder="Semua Tipe" autocomplete="off">
+                        <button type="button" class="filter-clear-btn" id="clear-tipe-sheet" aria-label="Clear Filter Tipe">×</button>
+                    </div>
+                    <datalist id="tipeListSheet"></datalist>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Tanggal</div>
+                    <div class="range-wrap"><input class="filter-input" id="dateFromSheet" type="date" /><span class="range-sep">S/D</span><input class="filter-input" id="dateToSheet" type="date" /></div>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Jam</div>
+                    <div class="range-wrap">
+                        <div class="time-input-wrap"><input class="filter-input" id="timeFromSheet" type="time" /><button type="button" class="filter-clear-btn" id="clearTimeFromBtn" aria-label="Clear Jam Mulai">×</button></div>
+                        <span class="range-sep">S/D</span>
+                        <div class="time-input-wrap"><input class="filter-input" id="timeToSheet" type="time" /><button type="button" class="filter-clear-btn" id="clearTimeToBtn" aria-label="Clear Jam Selesai">×</button></div>
+                    </div>
+                </div>
+            </div>
+            <div class="side-section">
+                <div class="side-title">Aksi</div>
+                <div class="side-actions">
+                    <button type="button" class="side-btn download" id="btnExportExcel" title="Unduh semua data sesuai filter (bukan hanya halaman ini)">⬇ Download Excel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---------- panel: Performansi Mold ---------- -->
+        <div class="side-panel" data-for="screen-chart-summary">
+            <div class="side-section">
+                <div class="side-title">Filter Grafik</div>
+                <div class="filter-group">
+                    <div class="filter-label">No. Mold</div>
+                    <div class="input-with-clear">
+                        <input type="text" list="moldListChart" class="filter-input" id="chartMoldSelect" placeholder="Ketik / pilih Mold" autocomplete="off">
+                        <button type="button" class="filter-clear-btn" id="clear-mold-chart" aria-label="Clear Chart Mold">×</button>
+                    </div>
+                    <datalist id="moldListChart"></datalist>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Tipe Grid</div>
+                    <div class="input-with-clear">
+                        <input type="text" list="tipeListChart" class="filter-input" id="chartTipeGrid" placeholder="Semua Tipe" autocomplete="off">
+                        <button type="button" class="filter-clear-btn" id="clear-tipe-chart" aria-label="Clear Chart Tipe">×</button>
+                    </div>
+                    <datalist id="tipeListChart"></datalist>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Tanggal Mulai</div>
+                    <input class="filter-input" id="chartDateFrom" type="date" />
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Tanggal Selesai</div>
+                    <input class="filter-input" id="chartDateTo" type="date" />
+                </div>
+            </div>
+        </div>
+
+        <!-- ---------- status koneksi (semua layar) ---------- -->
+        <div class="side-foot">
+            <div class="status-box">
+                <div class="status-text">● <span class="js-pending status-ok">ANTRIAN DB : -</span></div>
+                <div class="status-text">● <span class="js-db status-bad">DB SERVER : NOT ONLINE</span></div>
+            </div>
+            <div class="side-credit">PT GS Battery Semarang • Industry 4.0<br>QC Measurement System</div>
+        </div>
+    </aside>
+
+    <!-- ======================= KONTEN ======================= -->
+    <main class="main">
+        <div class="main-inner">
+
+            <!-- ---------- Main Dashboard ---------- -->
+            <section class="screen active" id="screen-dashboard">
+                <div class="page-head">
+                    <div>
+                        <div class="section-kicker">Realtime Measurement</div>
+                        <h1 class="page-title">QC Live Dashboard</h1>
+                    </div>
+                    <span class="pill" id="pill-status-main">Memuat...</span>
+                </div>
+
+                <input type="text" id="caliperInput" class="caliper-capture-input" aria-hidden="true" inputmode="decimal" autocomplete="off" spellcheck="false" tabindex="-1" />
+
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <div class="card-kicker">Measurement Points</div>
+                            <h2>Pembacaan Aktif dari Kaliper</h2>
+                        </div>
+                        <div class="avg-badge"><div class="label">Average (sementara)</div><div class="value" id="avg-main">-</div></div>
+                    </div>
+                    <div class="point-grid" id="pointGrid"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <div class="card-kicker">Line C01 - C22</div>
+                            <h2>Status Line <span style="font-weight:700; font-size:.85rem; color:var(--text-soft);">(klik untuk pindah line)</span></h2>
                         </div>
                     </div>
-
-                    <div class="history-filter-grid">
-                        <div class="filter-group"><div class="filter-label">Line</div><select class="filter-select" id="lineSelectSheet"></select></div>
-                        <div class="filter-group"><div class="filter-label">Mold</div>
-                            <div class="input-with-clear">
-                                <input type="text" list="moldListSheet" class="filter-input" id="moldSelectSheet" placeholder="Semua Mold" autocomplete="off">
-                                <button type="button" class="filter-clear-btn" id="clear-mold-sheet" aria-label="Clear Filter Mold">×</button>
-                            </div>
-                            <datalist id="moldListSheet"></datalist>
-                        </div>
-                        <div class="filter-group"><div class="filter-label">Tipe</div>
-                            <div class="input-with-clear">
-                                <input type="text" list="tipeListSheet" class="filter-input" id="metaTipeSheet" placeholder="Semua Tipe" autocomplete="off">
-                                <button type="button" class="filter-clear-btn" id="clear-tipe-sheet" aria-label="Clear Filter Tipe">×</button>
-                            </div>
-                            <datalist id="tipeListSheet"></datalist>
-                        </div>
-                        <div class="filter-group">
-                            <div class="filter-label">Tanggal</div>
-                            <div class="range-wrap"><input class="filter-input" id="dateFromSheet" type="date" /><span class="range-sep">s/d</span><input class="filter-input" id="dateToSheet" type="date" /></div>
-                        </div>
-                        <div class="filter-group">
-                            <div class="filter-label">Jam</div>
-                            <div class="range-wrap">
-                                <div class="time-input-wrap"><input class="filter-input" id="timeFromSheet" type="time" /><button type="button" class="filter-clear-btn" id="clearTimeFromBtn">×</button></div>
-                                <span class="range-sep">s/d</span>
-                                <div class="time-input-wrap"><input class="filter-input" id="timeToSheet" type="time" /><button type="button" class="filter-clear-btn" id="clearTimeToBtn">×</button></div>
-                            </div>
-                        </div>
+                    <div class="line-grid" id="lineGrid"></div>
+                    <div class="legend">
+                        <span><i style="background:#fff2a8"></i>Aktif</span>
+                        <span><i style="background:#e3eeff"></i>Mengirim</span>
+                        <span><i style="background:#ddf3dd"></i>Tersimpan di DB</span>
+                        <span><i style="background:#f8d7da"></i>Gagal / menunggu</span>
                     </div>
+                    <div class="hint">Setelah Titik 8 terisi, data otomatis diproses lalu pindah ke line berikutnya. Data kaliper ditangkap tanpa menampilkan kolom input.</div>
+                </div>
+            </section>
 
+            <!-- ---------- QC Measurement History ---------- -->
+            <section class="screen" id="screen-worksheet">
+                <div class="page-head">
+                    <div>
+                        <div class="section-kicker">Worksheet View</div>
+                        <h1 class="page-title">QC Measurement History</h1>
+                    </div>
+                </div>
+                <div class="card">
                     <div class="table-topbar">
                         <div class="table-mini-badge">Rows: <span id="historyRowCount">0</span></div>
-                        <button type="button" class="primary-btn btn-secondary small-btn" id="btnExportExcel" title="Unduh semua data sesuai filter (bukan hanya halaman ini)">⬇ Download Excel</button>
                         <div class="page-controls">
                             <button class="page-btn" id="historyPrevBtn" type="button">❮</button>
                             <span class="page-info" id="historyPageInfo">Page 0 / 0</span>
                             <button class="page-btn" id="historyNextBtn" type="button">❯</button>
                         </div>
                     </div>
-
                     <div class="table-wrap">
                         <table class="qc-table">
                             <thead>
@@ -335,82 +385,25 @@
                             <tfoot id="historyTableFoot"></tfoot>
                         </table>
                     </div>
+                </div>
+            </section>
 
-                    <div class="worksheet-footer">
-                        <div class="status-stack">
-                            <div class="status-text">● <span class="js-pending status-ok">ANTRIAN DB : -</span></div>
-                            <div class="status-text">● <span class="js-db status-bad">DB SERVER : NOT ONLINE</span></div>
-                        </div>
+            <!-- ---------- Performansi Mold ---------- -->
+            <section class="screen" id="screen-chart-summary">
+                <div class="page-head">
+                    <div>
+                        <div class="section-kicker">Data Analytics</div>
+                        <h1 class="page-title">Grafik Performansi Mold</h1>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ======================= CHART ======================= -->
-    <section class="screen" id="screen-chart-summary">
-        <div class="screen-inner">
-            <div class="worksheet-shell">
-                <div class="worksheet-paper">
-                    <div class="worksheet-header">
-                        <div class="worksheet-title-wrap">
-                            <div class="section-kicker">Data Analytics</div>
-                            <h2>Grafik Performansi Mold</h2>
-                        </div>
-                    </div>
-
-                    <div class="history-filter-grid">
-                        <div class="filter-group">
-                            <div class="filter-label">No. Mold</div>
-                            <div class="input-with-clear">
-                                <input type="text" list="moldListChart" class="filter-input" id="chartMoldSelect" placeholder="Ketik / Pilih Mold" autocomplete="off">
-                                <button type="button" class="filter-clear-btn" id="clear-mold-chart" aria-label="Clear Chart Mold">×</button>
-                            </div>
-                            <datalist id="moldListChart"></datalist>
-                        </div>
-                        <div class="filter-group">
-                            <div class="filter-label">Tipe Grid</div>
-                            <div class="input-with-clear">
-                                <input type="text" list="tipeListChart" class="filter-input" id="chartTipeGrid" placeholder="Semua Tipe" autocomplete="off">
-                                <button type="button" class="filter-clear-btn" id="clear-tipe-chart" aria-label="Clear Chart Tipe">×</button>
-                            </div>
-                            <datalist id="tipeListChart"></datalist>
-                        </div>
-                        <div class="filter-group">
-                            <div class="filter-label">Tanggal Mulai</div>
-                            <input class="filter-input" id="chartDateFrom" type="date" />
-                        </div>
-                        <div class="filter-group">
-                            <div class="filter-label">Tanggal Selesai</div>
-                            <input class="filter-input" id="chartDateTo" type="date" />
-                        </div>
-                    </div>
-
-                    <div style="position: relative; height: 50vh; width: 100%; margin-top: 10px; background: #fff; border-radius: 12px; border: 1px solid rgba(16, 33, 61, 0.08); padding: 15px;">
-                        <canvas id="moldChartCanvas"></canvas>
-                    </div>
-
-                    <div class="worksheet-footer">
-                        <div class="status-stack">
-                            <div class="status-text">● <span class="js-pending status-ok">ANTRIAN DB : -</span></div>
-                            <div class="status-text">● <span class="js-db status-bad">DB SERVER : NOT ONLINE</span></div>
-                        </div>
-                    </div>
+                <div class="card">
+                    <div class="chart-box"><canvas id="moldChartCanvas"></canvas></div>
                 </div>
-            </div>
+            </section>
+
         </div>
-    </section>
-</main>
-
-<nav class="menu-nav" aria-label="Display navigation">
-    <button class="menu-btn active" id="menuDashboard" data-screen="screen-dashboard" type="button">MAIN DASHBOARD</button>
-    <button class="menu-btn" id="menuHistory" data-screen="screen-worksheet" type="button">QC MEASUREMENT HISTORY</button>
-    <button class="menu-btn" id="menuChart" data-screen="screen-chart-summary" type="button">PERFORMANSI MOLD</button>
-</nav>
-
-<footer class="bottom-footer">
-    PT GS Battery Semarang • Industry 4.0 • QC Measurement System
-</footer>
+    </main>
+</div>
 
 <script>
     // ===================== KONSTANTA & STATE =====================
@@ -798,11 +791,7 @@
         } finally { isCheckingHistorySignature = false; }
     }
     async function downloadLatestDataExcel() {
-        const btnList = [
-            $("btnNavDownload"),
-            $("btnDownloadDashboardTop"),
-            $("btnDownloadDashboard")
-        ].filter(Boolean);
+        const btnList = [$("btnDownloadDashboard")].filter(Boolean);
         btnList.forEach(b => { b.disabled = true; b.dataset.old = b.innerHTML; b.innerHTML = "⏳ Menyiapkan..."; });
         showToast("Menyiapkan file Excel data yang sudah masuk...", "info");
         try {
@@ -923,6 +912,7 @@
     // ===================== NAVIGASI =====================
     function setActiveScreen(id) {
         activeScreenId = id;
+        document.body.dataset.screen = id;
         document.querySelectorAll(".screen").forEach(el => el.classList.toggle("active", el.id === id));
         document.querySelectorAll(".menu-btn").forEach(b => b.classList.toggle("active", b.dataset.screen === id));
         if (id === "screen-dashboard") focusCaliper();
@@ -993,7 +983,7 @@
     $("historyPrevBtn").addEventListener("click", () => changeHistoryPage(-1));
     $("historyNextBtn").addEventListener("click", () => changeHistoryPage(1));
     $("btnExportExcel").addEventListener("click", exportHistoryExcel);
-    ["btnNavDownload", "btnDownloadDashboardTop", "btnDownloadDashboard"].forEach(id => {
+    ["btnDownloadDashboard"].forEach(id => {
         const el = $(id);
         if (el) el.addEventListener("click", downloadLatestDataExcel);
     });
